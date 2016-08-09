@@ -1,0 +1,55 @@
+{
+  "author": {
+    "name": "Livio"
+  },
+  "bugs": {
+    "url": "http://github.com/livio/riposte/issues"
+  },
+  "contributors": [{
+    "name": "Scott Smereka",
+    "email": "scott@livio.io"
+  }],
+  "dependencies": {
+    "async": "^2.0.1",
+    "lodash": "^4.14.2"
+  },
+  "description": "Creates predictable API response objects by placing errors, warnings, and data in a well defined envelope.",
+  "devDependencies": {
+    "codecov.io": "^0.1.6",
+    "istanbul": "^0.3.20",
+    "mocha": "^2.3.3",
+    "should": "^7.1.0"
+  },
+  "engines": {
+    "node": ">=6.0.0"
+  },
+  "keywords": [
+    "API",
+    "ENVELOPE",
+    "LIVIO",
+    "MICRO",
+    "MICROSERVICE",
+    "REPLY"
+    "RESPONSE",
+    "RIPOSTE"
+    "SERVER",
+    "SERVICE"
+  ],
+  "licenses": [
+    {
+      "type": "BSD-3-Clause",
+      "url": "https://github.com/livio/riposte/blob/master/license"
+    }
+  ],
+  "main": "./libs",
+  "name": "riposte",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/livio/ripost.git"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "version": "0.0.1"
+}
