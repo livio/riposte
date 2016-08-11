@@ -25,6 +25,56 @@ class Riposte {
     return new Reply(obj, this);
   }
 
+  addExpressPreMiddleware(app) {
+    let self = this;
+    app.use(function (req, res, next) {
+      res.reply = new Reply(undefined, self);
+      next();
+    });
+  }
+
+  addExpressPostMiddleware(app) {
+    let self = this;
+    app.use(function (req, res, next) {
+      if(res && res.reply) {
+        res.reply.toObject(res.replyOptions, function (err, obj, status) {
+          if (err) {
+            next(err);
+          } else {
+            res.status(status).send(obj);
+          }
+        });
+      } else {
+        next(new Error("You must call \"addExpressPreMiddleware()\" before \"addExpressPostMiddleware()\"."));
+      }
+    });
+
+    app.use(function (err, req, res, next) {
+      if(err) {
+        riposte.handle(Riposte.HANDLER_TYPE_500, undefined, undefined, function (err, errorObject) {
+          if(err) {
+            if(log) {
+              log.error(err);
+            }
+          } else {
+            if(log) {
+              log.error(new Error("HANDLER_TYPE_500 requires one or more parameters be returned in the callback method.  Returning a generic error message."));
+            }
+          }
+
+          if( ! errorObject) {
+            res.status(500).send(new Error("An internal server error has occurred."));
+          } else {
+            res.status(500).send(errorObject);
+          }
+
+        });
+      }
+    });
+
+    return app;
+  }
+  
   get(key) {
     return this[key];
   }
@@ -67,8 +117,9 @@ class Riposte {
     };
 
     this.handlers = {};
+    this.use(Riposte.HANDLER_TYPE_500, HANDLER_METHOD_500);
     this.use(Riposte.HANDLER_TYPE_404, HANDLER_METHOD_404);
-    this.use(Riposte.HANDLER_TYPE_ERROR, HANDLER_METHOD_ERROR);
+    this.use(Riposte.HANDLER_TYPE_CREATE_ERROR, HANDLER_METHOD_CREATE_ERROR);
     this.use(Riposte.HANDLER_TYPE_ERROR_TO_OBJECT, HANDLER_METHOD_ERROR_TO_OBJECT);
     this.use(Riposte.HANDLER_TYPE_SANITIZE, HANDLER_METHOD_SANITIZE);
     this.use(Riposte.HANDLER_TYPE_TRANSLATE, HANDLER_METHOD_TRANSLATE);
@@ -82,7 +133,8 @@ class Riposte {
   }
 
   static get HANDLER_TYPE_404() { return "404" }
-  static get HANDLER_TYPE_ERROR() { return "error" }
+  static get HANDLER_TYPE_500() { return "500" }
+  static get HANDLER_TYPE_CREATE_ERROR() { return "error" }
   static get HANDLER_TYPE_ERROR_TO_OBJECT() { return "errorToObject" }
   static get HANDLER_TYPE_SANITIZE() { return "sanitize" }
   static get HANDLER_TYPE_TRANSLATE() { return "translate" }
@@ -103,7 +155,7 @@ let Reply = (require('./reply.js'))(Riposte);
  * ******************** Default Handler Methods
  * ************************************************** */
 
-const HANDLER_METHOD_ERROR = function(data, options, cb, riposte) {
+const HANDLER_METHOD_CREATE_ERROR = function(data, options, cb, riposte) {
   let RichError = riposte.get("RichError");
   if(RichError) {
     if(data instanceof RichError) {
@@ -133,20 +185,31 @@ const HANDLER_METHOD_ERROR_TO_OBJECT = function(data, options, cb, riposte) {
   } else {
     cb(undefined, data, 500);
   }
-}
+};
 
 const HANDLER_METHOD_404 = function(data, options, cb, riposte) {
   let RichError = riposte.get("RichError");
   if(RichError) {
-    cb(undefined, new RichError('server.400.notFound'));
+    data = 'server.400.notFound';
   } else {
-    cb(undefined, new Error("404 Not Found"));
+    data = "Not Found";
   }
-}
+  riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, data, options, cb);
+};
+
+const HANDLER_METHOD_500 = function (data, options, cb, riposte) {
+  let RichError = riposte.get("RichError");
+  if(RichError) {
+    data = 'server.500.generic';
+  } else {
+    data = "An internal server error has occurred.";
+  }
+  riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, data, options, cb);
+};
 
 const HANDLER_METHOD_SANITIZE = function(data, options, cb, riposte) {
   cb(undefined, data);
-}
+};
 
 const HANDLER_METHOD_TRANSLATE = function(data, options, cb, riposte) {
   let i18next = riposte.get("i18next");
@@ -155,7 +218,7 @@ const HANDLER_METHOD_TRANSLATE = function(data, options, cb, riposte) {
   } else {
     cb(undefined, data);
   }
-}
+};
 
 
 /* ************************************************** *

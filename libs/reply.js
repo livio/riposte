@@ -150,7 +150,7 @@ module.exports = function(Riposte) {
 
         for(let i = 0; i < errors.length; i++) {
           tasks.push(function(next) {
-            self.riposte.handle(Riposte.HANDLER_TYPE_ERROR, errors[i], undefined, function(error, data) {
+            self.riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, errors[i], undefined, function(error, data) {
               if(error) {
                 next(error);
               } else {
@@ -186,9 +186,13 @@ module.exports = function(Riposte) {
      * @param {*} data is the new data value to be set.
      * @return {object} the reply instance is returned.
      */
-    setData(data) {
+    setData(data, cb) {
       this.data = data;
-      return this;
+      if(cb) {
+        cb();
+      } else {
+        return this;
+      }
     }
 
   }
