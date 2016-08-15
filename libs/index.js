@@ -72,26 +72,28 @@ class Riposte {
 
     app.use(function (err, req, res, next) {
       if(err) {
-        self.handle(Riposte.HANDLER_TYPE_500, undefined, undefined, function (err, errorObject) {
-          if(err) {
-            if(self.log) {
-              self.log.error(err);
-            }
-          } else {
-            if(self.log) {
-              self.log.error(new Error("HANDLER_TYPE_500 requires one or more parameters be returned in the callback method.  Returning a generic error message."));
-            }
-          }
-
-          if( ! errorObject) {
-            errorObject = new Error("An internal server error has occurred.");
+        self.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, err, res.replyOptions, function (err, data) {
+          if(err && self.log) {
+            self.log.error(err);
           }
 
           if(self.logReplies && self.log) {
-            self.log[self.logReplies]('[%s] Reply with Status Code: 500\nResponse Body: %s', errorObject.id, JSON.stringify(errorObject, undefined, 2));
+            self.log[self.logReplies]('[%s] Reply with Status Code: 500\nResponse Body: %s', data.id, JSON.stringify(data, undefined, 2));
           }
 
-          res.status(500).send(errorObject);
+          res.status(500).send(data);
+        });
+      } else {
+        self.handle(Riposte.HANDLER_TYPE_500, err, undefined, function (err, data) {
+          if (err && self.log) {
+            self.log.error(err);
+          }
+
+          if (self.logReplies && self.log) {
+            self.log[self.logReplies]('[%s] Reply with Status Code: 500\nResponse Body: %s', data.id, JSON.stringify(data, undefined, 2));
+          }
+
+          res.status(500).send(data);
         });
       }
     });
