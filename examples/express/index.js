@@ -20,6 +20,7 @@ app.get("/error", function (req, res, next) {
 
 // Add a route to express to simulate an error in an API call using a Reply helper method.
 app.get("/forbidden", function (req, res, next) {
+  // This will add the forbidden error and immediately send it to the client.
   res.reply.setForbidden(next);
 });
 

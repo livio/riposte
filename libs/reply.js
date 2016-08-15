@@ -19,10 +19,13 @@ module.exports = function(Riposte) {
      * @param {object} riposte is the Riposte instance to be used.
      * @return {object} the reply instance is returned.
      */
-    constructor(obj, riposte) {
+    constructor(obj, riposte, res) {
       this.fromObject(obj);
       if(riposte) {
         this.riposte = riposte;
+      }
+      if(res) {
+        this.res = res;
       }
       return this;
     }
@@ -171,6 +174,67 @@ module.exports = function(Riposte) {
       return this;
     }
 
+    add(type, data, options, cb) {
+      let self = this;
+
+      if(typeof data === "function" && cb === undefined) {
+        cb = data;
+        data = undefined;
+        options = undefined;
+      } else if(typeof options === "function" && cb === undefined) {
+        cb = options;
+        options = undefined;
+      }
+      self.riposte.handle(type, data, options, function(err, data) {
+        if(err) {
+          cb(err);
+        } else {
+          self.addErrors(data, cb);
+        }
+      });
+    }
+
+    addBadRequest(data, options, cb) {
+      this.add(Riposte.HANDLER_TYPE_400, data, options, cb);
+    }
+
+    addForbidden(data, options, cb) {
+      this.add(Riposte.HANDLER_TYPE_403, data, options, cb);
+    }
+
+    addInternalServerError(data, options, cb) {
+      this.add(Riposte.HANDLER_TYPE_500, data, options, cb);
+    }
+
+    addNotFound(data, options, cb) {
+      this.add(Riposte.HANDLER_TYPE_404, data, options, cb);
+    }
+
+    addUnauthorized(data, options, cb) {
+      this.add(Riposte.HANDLER_TYPE_401, data, options, cb);
+    }
+
+    send(res, next) {
+      let self = this;
+
+      if(typeof res === "function" && next === undefined) {
+        next = res;
+        res = self.res;
+      }
+
+      if(res) {
+        res.reply.toObject(res.replyOptions, function (err, obj, status) {
+          if (err) {
+            next(err);
+          } else {
+            res.status(status).send(obj);
+          }
+        });
+      } else {
+        next(new Error("The express response object is required, but was never defined."));
+      }
+    }
+
     /**
      * Set the Reply instance's error list.
      * @param {array|undefined} errors is the new errors list to be set.
@@ -210,7 +274,13 @@ module.exports = function(Riposte) {
         if(err) {
           cb(err);
         } else {
-          self.addErrors(data, cb);
+          self.addErrors(data, function(err) {
+            if(err) {
+              cb(err);
+            } else {
+              self.send(cb);
+            }
+          });
         }
       });
     }

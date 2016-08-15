@@ -27,9 +27,13 @@ class Riposte {
   addExpressPreMiddleware(app) {
     let self = this;
     app.use(function (req, res, next) {
-      res.reply = new Reply(undefined, self);
+      res.reply = new Reply(undefined, self, res);
       next();
     });
+
+    self.state.expressPreMiddlewareEnabled = true;
+
+    return app;
   }
 
   addExpressPostMiddleware(app) {
@@ -70,6 +74,8 @@ class Riposte {
         });
       }
     });
+
+    self.state.expressPostMiddlewareEnabled = true;
 
     return app;
   }
@@ -125,6 +131,11 @@ class Riposte {
     this.use(Riposte.HANDLER_TYPE_ERROR_TO_OBJECT, HANDLER_METHOD_ERROR_TO_OBJECT);
     this.use(Riposte.HANDLER_TYPE_SANITIZE, HANDLER_METHOD_SANITIZE);
     this.use(Riposte.HANDLER_TYPE_TRANSLATE, HANDLER_METHOD_TRANSLATE);
+
+    this.state = {
+        "expressPreMiddlewareEnabled": false,
+        "expressPostMiddlewareEnabled": false
+    };
 
     return this;
   }
