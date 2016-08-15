@@ -26,8 +26,23 @@ class Riposte {
 
   addExpressPreMiddleware(app) {
     let self = this;
+
     app.use(function (req, res, next) {
       res.reply = new Reply(undefined, self, res);
+
+      if(self.logRequests && self.log) {
+        switch (req.method) {
+          case "POST":
+          case "PUT":
+            self.log[self.logRequests]('[%s] ' + req.method + ' ' + req.protocol + '://' + req.get('host') + req.originalUrl + '\n\nHeaders: %s\n\nBody: %s', res.reply.id, JSON.stringify(req.headers, undefined, 2), JSON.stringify(req.body, undefined, 2));
+            break;
+          default:
+            self.log[self.logRequests]('[%s] ' + req.method + ' ' + req.protocol + '://' + req.get('host') + req.originalUrl, res.reply.id);
+            break;
+        }
+      }
+
+
       next();
     });
 
@@ -44,6 +59,9 @@ class Riposte {
           if (err) {
             next(err);
           } else {
+            if(self.logReplies && self.log) {
+              self.log[self.logReplies]('[%s] Reply with Status Code: %s\nResponse Body: %s', obj.id, status, JSON.stringify(obj, undefined, 2));
+            }
             res.status(status).send(obj);
           }
         });
@@ -66,11 +84,14 @@ class Riposte {
           }
 
           if( ! errorObject) {
-            res.status(500).send(new Error("An internal server error has occurred."));
-          } else {
-            res.status(500).send(errorObject);
+            errorObject = new Error("An internal server error has occurred.");
           }
 
+          if(self.logReplies && self.log) {
+            self.log[self.logReplies]('[%s] Reply with Status Code: 500\nResponse Body: %s', errorObject.id, JSON.stringify(errorObject, undefined, 2));
+          }
+
+          res.status(500).send(errorObject);
         });
       }
     });
@@ -92,12 +113,16 @@ class Riposte {
   set(options = {}) {
     for(let key in options) {
       if(options.hasOwnProperty(key)) {
-        switch(options) {
+        switch(key) {
           case "i18next":
           case "log":
           case "richErrorOptions":
             this[key] = options[key];
             break;
+
+          case "express":
+
+
           default:  // Unsupported option.
             break;
         }
@@ -116,6 +141,8 @@ class Riposte {
   setDefault() {
     this.i18next = undefined;
     this.log = undefined;
+    this.logRequests = 'trace';
+    this.logReplies = 'trace';
     this.richError = undefined;
     this.richErrorOptions = {                    
       "enableStackTrace": false        // When true, errors returned from the server will include a stack trace.
@@ -171,7 +198,7 @@ let Reply = (require('./reply.js'))(Riposte);
  * ******************** Default Handler Methods
  * ************************************************** */
 
-const HANDLER_METHOD_CREATE_ERROR = function(data, options, cb, riposte) {
+const HANDLER_METHOD_CREATE_ERROR = function(data, options = {}, cb, riposte) {
   let RichError = riposte.get("RichError");
   if(RichError) {
     if(data instanceof RichError) {
@@ -180,13 +207,20 @@ const HANDLER_METHOD_CREATE_ERROR = function(data, options, cb, riposte) {
       cb(undefined, new RichError(data, options));
     }
   } else if(data instanceof Error) {
+    if(options.statusCode) {
+      data.statusCode = options.statusCode;
+    }
     cb(undefined, data);
   } else {
-    cb(undefined, new Error(data));
+    let error = new Error(data);
+    if(options.statusCode) {
+      error.statusCode = options.statusCode;
+    }
+    cb(undefined, error);
   }
 };
 
-const HANDLER_METHOD_ERROR_TO_OBJECT = function(data, options, cb, riposte) {
+const HANDLER_METHOD_ERROR_TO_OBJECT = function(data, options = {}, cb, riposte) {
   let RichError = riposte.get("RichError");
   if(RichError && data instanceof RichError) {
       cb(undefined, data.toResponseObject(riposte.get('richErrorOptions')), data.get("statusCode"));
@@ -197,58 +231,63 @@ const HANDLER_METHOD_ERROR_TO_OBJECT = function(data, options, cb, riposte) {
     if(data.code) {
       obj.code = data.code;
     }
-    cb(undefined, obj, 500);
+    cb(undefined, obj, options.statusCode || 500);
   } else {
-    cb(undefined, data, 500);
+    cb(undefined, data, options.statusCode || 500);
   }
 };
 
-const HANDLER_METHOD_400 = function(data, options, cb, riposte) {
+const HANDLER_METHOD_400 = function(data, options = {}, cb, riposte) {
   let RichError = riposte.get("RichError");
   if(RichError) {
     data = 'server.400.badRequest';
   } else {
     data = "Bad Request";
+    options.statusCode = 400;
   }
   riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, data, options, cb);
 };
 
-const HANDLER_METHOD_401 = function(data, options, cb, riposte) {
+const HANDLER_METHOD_401 = function(data, options = {}, cb, riposte) {
   let RichError = riposte.get("RichError");
   if(RichError) {
     data = 'server.400.unauthorized';
   } else {
     data = "Unauthorized";
+    options.statusCode = 401;
   }
   riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, data, options, cb);
 };
 
-const HANDLER_METHOD_403 = function(data, options, cb, riposte) {
+const HANDLER_METHOD_403 = function(data, options = {}, cb, riposte) {
   let RichError = riposte.get("RichError");
   if(RichError) {
     data = 'server.403.forbidden';
   } else {
     data = "Forbidden";
+    options.statusCode = 403;
   }
   riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, data, options, cb);
 };
 
-const HANDLER_METHOD_404 = function(data, options, cb, riposte) {
+const HANDLER_METHOD_404 = function(data, options = {}, cb, riposte) {
   let RichError = riposte.get("RichError");
   if(RichError) {
     data = 'server.400.notFound';
   } else {
     data = "Not Found";
+    options.statusCode = 404;
   }
   riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, data, options, cb);
 };
 
-const HANDLER_METHOD_500 = function (data, options, cb, riposte) {
+const HANDLER_METHOD_500 = function (data, options = {}, cb, riposte) {
   let RichError = riposte.get("RichError");
   if(RichError) {
     data = 'server.500.generic';
   } else {
     data = "An internal server error has occurred.";
+    options.statusCode = 500;
   }
   riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, data, options, cb);
 };

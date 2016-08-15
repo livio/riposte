@@ -1,8 +1,25 @@
 let app = (require("express"))(),
+  bunyan = require('bunyan'),
+  PrettyStream = require('bunyan-pretty-stream'),
   request = require("request"),
   riposte = new (require("../../libs/index.js"))();  // Require and create a new Riposte instance.
 
-// Optionally, here you could configure Riposte options and handlers using:  riposte.set();
+// You can add a bunyan logger instance to Riposte for all logging, including logging all requests and replies.
+let log = bunyan.createLogger({
+  name: "Riposte-Example",
+  serializers: bunyan.stdSerializers,
+  streams: [
+    {
+      level: 'trace',
+      stream: new PrettyStream()
+    }
+  ]
+});
+
+// Optionally, here you could configure Riposte options and handlers.
+riposte.set({
+  "log": log
+});
 
 // Add the middleware to express to create a new reply instance on every request.
 // This should be the first route you add to express.

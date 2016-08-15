@@ -5,13 +5,16 @@
   "bugs": {
     "url": "http://github.com/livio/riposte/issues"
   },
-  "contributors": [{
-    "name": "Scott Smereka",
-    "email": "scott@livio.io"
-  }],
+  "contributors": [
+    {
+      "name": "Scott Smereka",
+      "email": "scott@livio.io"
+    }
+  ],
   "dependencies": {
     "async": "^2.0.1",
-    "lodash": "^4.14.2"
+    "lodash": "^4.14.2",
+    "uuid": "^2.0.2"
   },
   "description": "Creates predictable API response objects by placing errors, warnings, and data in a well defined envelope.",
   "devDependencies": {
@@ -51,5 +54,5 @@
   "scripts": {
     "test": "mocha"
   },
-  "version": "0.0.4"
+  "version": "0.0.5"
 }

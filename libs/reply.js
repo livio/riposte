@@ -3,7 +3,8 @@
  * ********************************************************************** */
 
 let async = require('async'),
-  _ = require('lodash');
+  _ = require('lodash'),
+  uuid = require('uuid');
 
 
 /* ********************************************************************** *
@@ -41,6 +42,7 @@ module.exports = function(Riposte) {
       this.errors = obj.errors || [];
       this.riposte = obj.riposte || undefined;
       this.data = obj.data || undefined;
+      this.id = obj.id || uuid.v4();
       return this;
     }
 
@@ -60,7 +62,7 @@ module.exports = function(Riposte) {
         // When there isn't any data or errors to send, send a 404 error.
         tasks.push(function(next) {
           self.riposte.handle(Riposte.HANDLER_TYPE_404, undefined, undefined, function(err, replyError) {
-            next(err, { errors: [ replyError ]});
+            next(err, { errors: [ replyError ] });
           });
         });
 
@@ -106,7 +108,11 @@ module.exports = function(Riposte) {
           for (let i = 0; i < self.errors.length; i++) {
             tasks.push(function(reply, statusCode, next) {
               if (self.errors[i].statusCode && (statusCode === undefined || self.errors[i].statusCode > statusCode)) {
-                statusCode = self.errors[i].get("statusCode");
+                if(self.errors[i].get) {
+                  statusCode = self.errors[i].get("statusCode");
+                } else {
+                  statusCode = self.errors[i].statusCode;
+                }
               }
               self.riposte.handle(Riposte.HANDLER_TYPE_ERROR_TO_OBJECT, self.errors[i], undefined, function(err, errorObject) {
                 if(err) {
@@ -129,6 +135,14 @@ module.exports = function(Riposte) {
           });
         }
       }
+
+      // Add the reply ID.
+      tasks.push(function (reply, statusCode, next) {
+        if(self.id && reply.id === undefined) {
+          reply.id = self.id;
+        }
+        next(undefined, reply, statusCode);
+      });
 
       // Execute the tasks and return the results.
       async.waterfall(tasks, cb);
@@ -227,6 +241,10 @@ module.exports = function(Riposte) {
           if (err) {
             next(err);
           } else {
+            if(self.riposte.logReplies && self.riposte.log) {
+              self.riposte.log[self.riposte.logReplies]('[%s] Reply with Status Code: %s\nBody: %s', obj.id, status, JSON.stringify(obj, undefined, 2));
+            }
+
             res.status(status).send(obj);
           }
         });
