@@ -38,7 +38,7 @@ app.get("/error", function (req, res, next) {
 // Add a route to express to simulate an error in an API call using a Reply helper method.
 app.get("/forbidden", function (req, res, next) {
   // This will add the forbidden error and immediately send it to the client.
-  res.reply.setForbidden(next);
+  res.reply.setNotFound(next);
 });
 
 // Add middleware to express to send the reply object and status code to the client at the end of every request.
@@ -46,7 +46,7 @@ app.get("/forbidden", function (req, res, next) {
 riposte.addExpressPostMiddleware(app);
 
 // Start the express server listening on port 3000 by default.
-app.listen(process.env.PORT || 3000, function () {
+let server = app.listen(process.env.PORT || 3001, function () {
   let serverInfo = this.address();
   let address = "http://" + ((serverInfo.address === "0.0.0.0" || serverInfo.address === "::") ? "localhost" : serverInfo.address) + ":" +serverInfo.port;
 
@@ -74,4 +74,8 @@ app.listen(process.env.PORT || 3000, function () {
       console.log("A GET request to \"%s/forbidden\" returned an error message in the response body %s", address, body);
     }
   });
+
+  setTimeout(function () {
+    server.close();
+  }, 5000)
 });

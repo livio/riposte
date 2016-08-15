@@ -62,7 +62,7 @@ module.exports = function(Riposte) {
         // When there isn't any data or errors to send, send a 404 error.
         tasks.push(function(next) {
           self.riposte.handle(Riposte.HANDLER_TYPE_404, undefined, undefined, function(err, replyError) {
-            next(err, { errors: [ replyError ] });
+            next(err, { errors: [ replyError ], id: self.id }, replyError.statusCode || 404);
           });
         });
 
