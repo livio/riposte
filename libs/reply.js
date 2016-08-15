@@ -195,10 +195,50 @@ module.exports = function(Riposte) {
       }
     }
 
+    set(type, data, options, cb) {
+      let self = this;
+
+      if(typeof data === "function" && cb === undefined) {
+        cb = data;
+        data = undefined;
+        options = undefined;
+      } else if(typeof options === "function" && cb === undefined) {
+        cb = options;
+        options = undefined;
+      }
+      self.riposte.handle(type, data, options, function(err, data) {
+        if(err) {
+          cb(err);
+        } else {
+          self.addErrors(data, cb);
+        }
+      });
+    }
+
+    setBadRequest(data, options, cb) {
+      this.set(Riposte.HANDLER_TYPE_400, data, options, cb);
+    }
+
+    setForbidden(data, options, cb) {
+      this.set(Riposte.HANDLER_TYPE_403, data, options, cb);
+    }
+
+    setInternalServerError(data, options, cb) {
+      this.set(Riposte.HANDLER_TYPE_500, data, options, cb);
+    }
+
+    setNotFound(data, options, cb) {
+      this.set(Riposte.HANDLER_TYPE_404, data, options, cb);
+    }
+
+    setUnauthorized(data, options, cb) {
+      this.set(Riposte.HANDLER_TYPE_401, data, options, cb);
+    }
+
   }
 
   return Reply;
-}
+};
 
 /* ********************************************************************** *
  * ****************************** Documentation Stubs

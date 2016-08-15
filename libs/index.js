@@ -5,7 +5,6 @@
 let async = require('async'),
   EventEmitter = require('events'),
   path = require('path'),
-  _ = require('lodash'),
   util = require('util');
 
 
@@ -51,14 +50,14 @@ class Riposte {
 
     app.use(function (err, req, res, next) {
       if(err) {
-        riposte.handle(Riposte.HANDLER_TYPE_500, undefined, undefined, function (err, errorObject) {
+        self.handle(Riposte.HANDLER_TYPE_500, undefined, undefined, function (err, errorObject) {
           if(err) {
-            if(log) {
-              log.error(err);
+            if(self.log) {
+              self.log.error(err);
             }
           } else {
-            if(log) {
-              log.error(new Error("HANDLER_TYPE_500 requires one or more parameters be returned in the callback method.  Returning a generic error message."));
+            if(self.log) {
+              self.log.error(new Error("HANDLER_TYPE_500 requires one or more parameters be returned in the callback method.  Returning a generic error message."));
             }
           }
 
@@ -117,8 +116,11 @@ class Riposte {
     };
 
     this.handlers = {};
-    this.use(Riposte.HANDLER_TYPE_500, HANDLER_METHOD_500);
+    this.use(Riposte.HANDLER_TYPE_400, HANDLER_METHOD_400);
+    this.use(Riposte.HANDLER_TYPE_401, HANDLER_METHOD_401);
+    this.use(Riposte.HANDLER_TYPE_403, HANDLER_METHOD_403);
     this.use(Riposte.HANDLER_TYPE_404, HANDLER_METHOD_404);
+    this.use(Riposte.HANDLER_TYPE_500, HANDLER_METHOD_500);
     this.use(Riposte.HANDLER_TYPE_CREATE_ERROR, HANDLER_METHOD_CREATE_ERROR);
     this.use(Riposte.HANDLER_TYPE_ERROR_TO_OBJECT, HANDLER_METHOD_ERROR_TO_OBJECT);
     this.use(Riposte.HANDLER_TYPE_SANITIZE, HANDLER_METHOD_SANITIZE);
@@ -132,6 +134,9 @@ class Riposte {
     return this;
   }
 
+  static get HANDLER_TYPE_400() { return "400" }
+  static get HANDLER_TYPE_401() { return "401" }
+  static get HANDLER_TYPE_403() { return "401" }
   static get HANDLER_TYPE_404() { return "404" }
   static get HANDLER_TYPE_500() { return "500" }
   static get HANDLER_TYPE_CREATE_ERROR() { return "error" }
@@ -185,6 +190,36 @@ const HANDLER_METHOD_ERROR_TO_OBJECT = function(data, options, cb, riposte) {
   } else {
     cb(undefined, data, 500);
   }
+};
+
+const HANDLER_METHOD_400 = function(data, options, cb, riposte) {
+  let RichError = riposte.get("RichError");
+  if(RichError) {
+    data = 'server.400.badRequest';
+  } else {
+    data = "Bad Request";
+  }
+  riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, data, options, cb);
+};
+
+const HANDLER_METHOD_401 = function(data, options, cb, riposte) {
+  let RichError = riposte.get("RichError");
+  if(RichError) {
+    data = 'server.400.unauthorized';
+  } else {
+    data = "Unauthorized";
+  }
+  riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, data, options, cb);
+};
+
+const HANDLER_METHOD_403 = function(data, options, cb, riposte) {
+  let RichError = riposte.get("RichError");
+  if(RichError) {
+    data = 'server.403.forbidden';
+  } else {
+    data = "Forbidden";
+  }
+  riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, data, options, cb);
 };
 
 const HANDLER_METHOD_404 = function(data, options, cb, riposte) {

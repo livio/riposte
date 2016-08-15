@@ -18,6 +18,11 @@ app.get("/error", function (req, res, next) {
   res.reply.addErrors(new Error("An error occurred during the API call."), next);
 });
 
+// Add a route to express to simulate an error in an API call using a Reply helper method.
+app.get("/forbidden", function (req, res, next) {
+  res.reply.setForbidden(next);
+});
+
 // Add middleware to express to send the reply object and status code to the client at the end of every request.
 // This should be the last route you add to express.
 riposte.addExpressPostMiddleware(app);
@@ -28,6 +33,8 @@ app.listen(process.env.PORT || 3000, function () {
   let address = "http://" + ((serverInfo.address === "0.0.0.0" || serverInfo.address === "::") ? "localhost" : serverInfo.address) + ":" +serverInfo.port;
 
   console.log("Listening on %s", address);
+
+  // Note:  The logs for the following API requests may appear out of order, this is expected.
 
   // Make a successful API request.
   request(address+"/success", function (err, response, body) {
@@ -40,6 +47,13 @@ app.listen(process.env.PORT || 3000, function () {
   request(address+"/error", function (err, response, body) {
     if( ! err) {
       console.log("A GET request to \"%s/error\" returned an error message in the response body %s", address, body);
+    }
+  });
+
+  // Make an API request that should return forbidden.
+  request(address+"/forbidden", function (err, response, body) {
+    if( ! err) {
+      console.log("A GET request to \"%s/forbidden\" returned an error message in the response body %s", address, body);
     }
   });
 });
