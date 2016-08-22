@@ -16,33 +16,27 @@ module.exports = function(Riposte) {
   class Reply {
     /**
      * Called when a new instance is created using the new keyword.
-     * @param {object|undefined} obj is object with Reply related properties. 
-     * @param {object} riposte is the Riposte instance to be used.
+     * @param {object|undefined} options is object with Reply related properties.
      * @return {object} the reply instance is returned.
      */
-    constructor(obj, riposte, res) {
-      this.fromObject(obj);
-      if(riposte) {
-        this.riposte = riposte;
-      }
-      if(res) {
-        this.res = res;
-      }
+    constructor(options) {
+      this.fromObject(options);
       return this;
     }
 
     /**
-     * Apply the Reply related properties from an object 
-     * to this Reply instance.  Where properties are invalid or undefined 
-     * the default values will be used.
+     * Apply the Reply related properties from an object to this Reply
+     * instance.  Where properties are invalid or undefined the default
+     * values will be used.
      * @param {object|undefined} obj is object with Reply related properties. 
-     * @return {object} the reply instance is returned.
+     * @return {object} the updated reply instance is returned.
      */
     fromObject(obj = {}) {
-      this.errors = obj.errors || [];
-      this.riposte = obj.riposte || undefined;
       this.data = obj.data || undefined;
+      this.errors = obj.errors || [];
       this.id = obj.id || uuid.v4();
+      this.res = obj.res || undefined;
+      this.riposte = obj.riposte || undefined;
       return this;
     }
 
@@ -57,27 +51,26 @@ module.exports = function(Riposte) {
       let tasks = [],
         self = this;
 
-      // Check for data and/or errors.
+      // Check for data and/or errors, if neither are found then return a 404.
       if(self.data === undefined && (self.errors === undefined || self.errors.length == 0)) {
-        // When there isn't any data or errors to send, send a 404 error.
         tasks.push(function(next) {
-          self.riposte.handle(Riposte.HANDLER_TYPE_404, undefined, undefined, function(err, replyError) {
-            next(err, { errors: [ replyError ], id: self.id }, replyError.statusCode || 404);
+          self.riposte.handle(Riposte.SET_REPLY_CLIENT_ERROR, 404, undefined, function (err, data) {
+            next(err, { id: self.id, errors: [ data ] }, data.statusCode || 404);
           });
         });
 
-      // If there are errors or data to send.  
+      // If there are errors and/or data to send.
       } else {
         
-        // Create the reply object and add the, optionally sanitized, response data.
+        // Create the reply object and add the response data, then send the object to the next tasks.
         tasks.push(function(next) {
           if(self.data) {
             if(options.sanitizeData === true) {
-              self.riposte.handle(Riposte.HANDLER_TYPE_SANITIZE, undefined, undefined, function(error, data) {
+              self.riposte.handle(Riposte.ON_SANITIZE_DATA, self.data, options, function(error, data) {
                 if(error) {
                   next(error, {});
                 } else {
-                  next(undefined, { data: self.data });
+                  next(undefined, { data: data });
                 }
               });
             } else {
@@ -88,33 +81,34 @@ module.exports = function(Riposte) {
           }
         });
 
-        // Check if there are errors.
+        // If there are no errors, then set the status code and no not alter the reply object.
         if( ! self.errors || ! _.isArray(self.errors) || self.errors.length == 0) {
-          // If there aren't errors, return the reply object and a "200 OK" status code.
           tasks.push(function(reply, next) {
             next(undefined, reply, 200);
           });
 
-        // If there are errors.  
+        // If there are errors add them to the reply object, then return it.
         } else {
 
           // Create an errors array in the reply and set the status code to undefined.
           tasks.push(function(reply, next) {
             reply.errors = [];
-            next(undefined, reply, undefined);
+            next(undefined, reply, undefined);  // The last parameter is the status code.
           });
 
           // Add each error to the reply object and update the status code to the highest value.
           for (let i = 0; i < self.errors.length; i++) {
             tasks.push(function(reply, statusCode, next) {
               if (self.errors[i].statusCode && (statusCode === undefined || self.errors[i].statusCode > statusCode)) {
+                // TODO: For rich errors, use the get method, this may be updated in the future based on RichError module.
                 if(self.errors[i].get) {
                   statusCode = self.errors[i].get("statusCode");
                 } else {
                   statusCode = self.errors[i].statusCode;
                 }
               }
-              self.riposte.handle(Riposte.HANDLER_TYPE_ERROR_TO_OBJECT, self.errors[i], undefined, function(err, errorObject) {
+              // Convert the reply error to an object.
+              self.riposte.handle(Riposte.ON_REPLY_ERROR_TO_OBJECT, self.errors[i], options, function(err, errorObject) {
                 if(err) {
                   next(err);
                 } else {
@@ -125,18 +119,14 @@ module.exports = function(Riposte) {
             });
           }
 
-          // Finally, ensure the status code is defined, defaulting to "500 Internal Server Error".  Then return the reply.
+          // Finally, ensure the status code is defined, defaulting to "500 Internal Server Error", then return the reply.
           tasks.push(function(reply, statusCode, next) {
-            if(statusCode === undefined) {
-              next(undefined, reply, 500);
-            } else {
-              next(undefined, reply, statusCode);
-            }
+            next(undefined, reply, statusCode || 500);
           });
         }
       }
 
-      // Add the reply ID.
+      // Add the reply ID to the reply object
       tasks.push(function (reply, statusCode, next) {
         if(self.id && reply.id === undefined) {
           reply.id = self.id;
@@ -167,7 +157,7 @@ module.exports = function(Riposte) {
 
         for(let i = 0; i < errors.length; i++) {
           tasks.push(function(next) {
-            self.riposte.handle(Riposte.HANDLER_TYPE_CREATE_ERROR, errors[i], undefined, function(error, data) {
+            self.riposte.handle(Riposte.ON_REPLY_ERROR, errors[i], undefined, function(error, data) {
               if(error) {
                 next(error);
               } else {
@@ -208,24 +198,24 @@ module.exports = function(Riposte) {
       });
     }
 
-    addBadRequest(data, options, cb) {
-      this.add(Riposte.HANDLER_TYPE_400, data, options, cb);
+    addBadRequest(options, cb) {
+      this.add(Riposte.SET_REPLY_CLIENT_ERROR, 400, options, cb);
     }
 
-    addForbidden(data, options, cb) {
-      this.add(Riposte.HANDLER_TYPE_403, data, options, cb);
+    addForbidden(options, cb) {
+      this.add(Riposte.SET_REPLY_CLIENT_ERROR, 403, options, cb);
     }
 
-    addInternalServerError(data, options, cb) {
-      this.add(Riposte.HANDLER_TYPE_500, data, options, cb);
+    addInternalServerError(options, cb) {
+      this.add(Riposte.SET_REPLY_SERVER_ERROR, 500, options, cb);
     }
 
-    addNotFound(data, options, cb) {
-      this.add(Riposte.HANDLER_TYPE_404, data, options, cb);
+    addNotFound(options, cb) {
+      this.add(Riposte.SET_REPLY_CLIENT_ERROR, 404, options, cb);
     }
 
-    addUnauthorized(data, options, cb) {
-      this.add(Riposte.HANDLER_TYPE_401, data, options, cb);
+    addUnauthorized(options, cb) {
+      this.add(Riposte.SET_REPLY_CLIENT_ERROR, 401, options, cb);
     }
 
     send(res, next) {
@@ -241,8 +231,8 @@ module.exports = function(Riposte) {
           if (err) {
             next(err);
           } else {
-            if(self.riposte.logReplies && self.riposte.log) {
-              self.riposte.log[self.riposte.logReplies]('[%s] Reply with Status Code: %s\nBody: %s', obj.id, status, JSON.stringify(obj, undefined, 2));
+            if(self.riposte.logReplies) {
+              self.riposte.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: %s\nBody: %s', obj.id, status, JSON.stringify(obj, undefined, 2)], { level: self.logReplies });
             }
 
             res.status(status).send(obj);
@@ -303,24 +293,24 @@ module.exports = function(Riposte) {
       });
     }
 
-    setBadRequest(data, options, cb) {
-      this.set(Riposte.HANDLER_TYPE_400, data, options, cb);
+    setBadRequest(options, cb) {
+      this.set(Riposte.SET_REPLY_CLIENT_ERROR, 400, options, cb);
     }
 
-    setForbidden(data, options, cb) {
-      this.set(Riposte.HANDLER_TYPE_403, data, options, cb);
+    setForbidden(options, cb) {
+      this.set(Riposte.SET_REPLY_CLIENT_ERROR, 403, options, cb);
     }
 
-    setInternalServerError(data, options, cb) {
-      this.set(Riposte.HANDLER_TYPE_500, data, options, cb);
+    setInternalServerError(options, cb) {
+      this.set(Riposte.SET_REPLY_SERVER_ERROR, 500, options, cb);
     }
 
-    setNotFound(data, options, cb) {
-      this.set(Riposte.HANDLER_TYPE_404, data, options, cb);
+    setNotFound(options, cb) {
+      this.set(Riposte.SET_REPLY_CLIENT_ERROR, 404, options, cb);
     }
 
-    setUnauthorized(data, options, cb) {
-      this.set(Riposte.HANDLER_TYPE_401, data, options, cb);
+    setUnauthorized(options, cb) {
+      this.set(Riposte.SET_REPLY_CLIENT_ERROR, 401, options, cb);
     }
 
   }

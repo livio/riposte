@@ -12,6 +12,7 @@
     }
   ],
   "dependencies": {
+    "async": "^2.0.1",
     "bunyan": "^1.8.1",
     "bunyan-pretty-stream": "^1.0.1",
     "express": "^4.14.0",
