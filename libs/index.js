@@ -21,12 +21,12 @@ class Riposte {
   }
 
   // Create a new reply instance.
-  createReply(obj) {
+  createReply(obj = {}) {
     obj.riposte = obj.riposte || this;
     return new Reply(obj);
   }
 
-  
+
   addExpressPreMiddleware(app) {
     let self = this;
 
@@ -317,8 +317,7 @@ class Riposte {
   static get SET_REPLY_REDIRECTION() { return "set-reply-redirection"}
   static get SET_REPLY_SERVER_ERROR() { return "server-error" }
   static get SET_REPLY_SUCCESS() { return "set-reply-ok"}
-
-
+  
 }
 
 util.inherits(Riposte, EventEmitter);

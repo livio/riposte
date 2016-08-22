@@ -140,6 +140,29 @@ module.exports = function(Riposte) {
       return this;
     }
 
+    addErrorsAndSetData(errors, data, cb) {
+      let self = this;
+      self.addErrors(err, function(err) {
+        if(err) {
+          cb(err);
+        } else {
+          self.setData(data, function(err) {
+            if(err) {
+              cb(err);
+            } else {
+              cb();
+            }
+          })
+        }
+      });
+    }
+
+    addErrorsAndSetDataMethod(cb) {
+      return function(errors, data) {
+        this.addErrorsAndSetData(errors, data, cb);
+      }
+    }
+
     /**
      * Add one or more errors to the Reply instance.
      * @param {array|object|undefined} errors is the one or more errors to be added.
@@ -147,9 +170,18 @@ module.exports = function(Riposte) {
      * @return {object} the reply instance is returned.
      */
     addErrors(errors, cb) {
-      if(errors) {
-        let self = this,
-        tasks = []; 
+      let self = this;
+      
+      if( ! errors) {
+        if(cb) {
+          cb(undefined, self.errors);
+        }
+      } else if( ! cb) {
+        console.log("riposte.addErrors():  Callback is a required parameter.");
+        // Callback is required.
+        //self.riposte.handle(Riposte.ON_LOG, ['[%s] ' + req.method + ' ' + req.protocol + '://' + req.get('host') + req.originalUrl + '\n\nHeaders: %s\n\nBody: %s', res.reply.id, JSON.stringify(req.headers, undefined, 2), JSON.stringify(req.body, undefined, 2)]);
+      } else {
+        let tasks = [];
 
         if( ! _.isArray(errors)) {
           errors = [ errors ];
@@ -171,10 +203,8 @@ module.exports = function(Riposte) {
         async.series(tasks, function(error) {
           cb(error, self.errors);
         });
-      } else {
-        cb(undefined, self.errors);
       }
-
+      
       return this;
     }
 
