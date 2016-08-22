@@ -142,7 +142,7 @@ module.exports = function(Riposte) {
 
     addErrorsAndSetData(errors, data, cb) {
       let self = this;
-      self.addErrors(err, function(err) {
+      self.addErrors(errors, function(err) {
         if(err) {
           cb(err);
         } else {
@@ -157,9 +157,16 @@ module.exports = function(Riposte) {
       });
     }
 
-    addErrorsAndSetDataMethod(cb) {
+    createResponse(cb) {
+      let self = this;
       return function(errors, data) {
-        this.addErrorsAndSetData(errors, data, cb);
+        self.addErrorsAndSetData(errors, data, function (err, cb) {
+          if(err) {
+            cb(err);
+          } else {
+            self.toObject(undefined, cb);
+          }
+        });
       }
     }
 
