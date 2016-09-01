@@ -52,7 +52,7 @@ let server = app.listen(process.env.PORT || 3001, function () {
     address = "http://" + ((serverInfo.address === "0.0.0.0" || serverInfo.address === "::") ? "localhost" : serverInfo.address) + ":" +serverInfo.port,
     tasks = [];
 
-  console.log("Listening on %s", address);
+  console.log("Listening on %s\n", address);
 
   // Note:  The logs for the following API requests may appear out of order, this is expected.
 
@@ -60,7 +60,7 @@ let server = app.listen(process.env.PORT || 3001, function () {
   tasks.push((cb) => {
     request(address + "/success", function (err, response, body) {
       if (!err && response.statusCode == 200) {
-        console.log("A GET request to \"%s/success\" returned a successful response.", address);
+        console.log("A GET request to \"%s/success\" returned a successful response.\n", address);
       }
       cb(err);
     });
@@ -70,7 +70,7 @@ let server = app.listen(process.env.PORT || 3001, function () {
   tasks.push((cb) => {
     request(address + "/error", function (err, response, body) {
       if (!err) {
-        console.log("A GET request to \"%s/error\" returned an error message.", address);
+        console.log("A GET request to \"%s/error\" returned an error message.\n", address);
       }
       cb(err);
     });
@@ -80,7 +80,7 @@ let server = app.listen(process.env.PORT || 3001, function () {
   tasks.push((cb) => {
     request(address + "/forbidden", function (err, response, body) {
       if ( ! err) {
-        console.log("A GET request to \"%s/forbidden\" returned an error message.", address);
+        console.log("A GET request to \"%s/forbidden\" returned an error message.\n", address);
       }
       cb(err);
     });

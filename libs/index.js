@@ -25,8 +25,7 @@ class Riposte {
     obj.riposte = obj.riposte || this;
     return new Reply(obj);
   }
-
-
+  
   addExpressPreMiddleware(app) {
     let self = this;
 
@@ -57,48 +56,27 @@ class Riposte {
     let self = this;
 
     app.use(function (req, res, next) {
-      if(res && res.reply) {
-        res.reply.toObject(res.replyOptions, function (err, obj, status) {
-          if (err) {
-            next(err);
-          } else {
-            if(self.logReplies) {
-              self.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: %s\nResponse Body: %s', obj.id, status, JSON.stringify(obj, undefined, 2)]);
-            }
-            res.status(status).send(obj);
-          }
-        });
-      } else {
-        next(new Error("You must call \"riposte.addExpressPreMiddleware(app)\" before \"riposte.addExpressPostMiddleware(app)\"."));
-      }
+      self.send(res, next);
     });
 
     app.use(function (err, req, res, next) {
-      if(err) {
-        self.handle(Riposte.ON_REPLY_ERROR, err, res.replyOptions, function (err, data) {
-          if(err) {
-            self.handle(Riposte.ON_LOG, err, { level: "error" });
-          }
+      //TODO: Make this use self.send().
+      let errorType = (err) ? Riposte.ON_REPLY_ERROR : Riposte.SET_REPLY_SERVER_ERROR,
+        options = res.replyOptions || undefined;
 
-          if(self.logReplies) {
-            self.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: 500\nResponse Body: %s', data.id, JSON.stringify(data, undefined, 2)], { level: self.logReplies });
-          }
+      err = (err) ? err : 500;
 
-          res.status(500).send(data);
-        });
-      } else {
-        self.handle(Riposte.SET_REPLY_SERVER_ERROR, 500, undefined, function (err, data) {
-          if (err) {
-            self.handle(Riposte.ON_LOG, err, { level: "error" });
-          }
+      self.handle(errorType, err, options, function (err, data) {
+        if(err) {
+          self.handle(Riposte.ON_LOG, err, { level: "error" });
+        }
 
-          if (self.logReplies) {
-            self.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: 500\nResponse Body: %s', data.id, JSON.stringify(data, undefined, 2)], { level: self.logReplies });
-          }
+        if(self.logReplies) {
+          self.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: 500\nResponse Body: %s', data.id, JSON.stringify(data, undefined, 2)], { level: self.logReplies });
+        }
 
-          res.status(500).send(data);
-        });
-      }
+        res.status(data.statusCode || 500).send(data);
+      });
     });
 
     return app;
@@ -166,6 +144,35 @@ class Riposte {
     }
   }
 
+  send(res, next) {
+    let self = this;
+
+    if(res) {
+      if(res.reply) {
+        res.reply.toObject(res.replyOptions, function (err, obj) {
+          if (err) {
+            next(err);
+          } else {
+            let statusCode = obj.statusCode;
+            delete obj.statusCode;
+
+            if (self.logReplies) {
+              self.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: %s\nBody: %s', obj.id, statusCode, JSON.stringify(obj, undefined, 2)], {level: self.logReplies});
+            }
+
+            res.status(statusCode).send(obj);
+          }
+        });
+      } else {
+        next(new Error("The riposte reply object was not found in the express response object parameter.  Did you forget to call \"riposte.addExpressPreMiddleware(app)\" before \"riposte.addExpressPostMiddleware(app)\"."))
+      }
+    } else {
+      next(new Error("The express response object parameter is required, but was never defined."));
+    }
+
+    return this;
+  }
+  
   setReplyClientError(statusCode, options = {}, cb, riposte) {
     let self = riposte || this,
       RichError = self.get("RichError");

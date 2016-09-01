@@ -35,8 +35,9 @@ module.exports = function(Riposte) {
       this.data = obj.data || undefined;
       this.errors = obj.errors || [];
       this.id = obj.id || uuid.v4();
-      this.res = obj.res || this.res;
-      this.riposte = obj.riposte || this.riposte;
+      this.res = obj.res || this.res;                   // TODO: Check if this can be set to undefined as default.
+      this.riposte = obj.riposte || this.riposte;       // Do not clear out references to the riposte parent class.
+      this.statusCode = obj.statusCode || undefined;
       return this;
     }
 
@@ -55,7 +56,7 @@ module.exports = function(Riposte) {
       if(self.data === undefined && (self.errors === undefined || self.errors.length == 0)) {
         tasks.push(function(next) {
           self.riposte.handle(Riposte.SET_REPLY_CLIENT_ERROR, 404, undefined, function (err, data) {
-            next(err, { id: self.id, errors: [ data ] }, data.statusCode || 404);
+            next(err, { id: self.id, errors: [ data ], statusCode: data.statusCode || 404 });
           });
         });
 
@@ -81,10 +82,11 @@ module.exports = function(Riposte) {
           }
         });
 
-        // If there are no errors, then set the status code and no not alter the reply object.
+        // If there are no errors, then set the status code and do not alter the reply object.
         if( ! self.errors || ! _.isArray(self.errors) || self.errors.length == 0) {
           tasks.push(function(reply, next) {
-            next(undefined, reply, 200);
+            reply.statusCode = 200;
+            next(undefined, reply);
           });
 
         // If there are errors add them to the reply object, then return it.
@@ -93,18 +95,18 @@ module.exports = function(Riposte) {
           // Create an errors array in the reply and set the status code to undefined.
           tasks.push(function(reply, next) {
             reply.errors = [];
-            next(undefined, reply, undefined);  // The last parameter is the status code.
+            next(undefined, reply);  // The last parameter is the status code.
           });
 
           // Add each error to the reply object and update the status code to the highest value.
           for (let i = 0; i < self.errors.length; i++) {
-            tasks.push(function(reply, statusCode, next) {
-              if (self.errors[i].statusCode && (statusCode === undefined || self.errors[i].statusCode > statusCode)) {
+            tasks.push(function(reply, next) {
+              if (self.errors[i].statusCode && (reply.statusCode === undefined || self.errors[i].statusCode > reply.statusCode)) {
                 // TODO: For rich errors, use the get method, this may be updated in the future based on RichError module.
                 if(self.errors[i].get) {
-                  statusCode = self.errors[i].get("statusCode");
+                  reply.statusCode = self.errors[i].get("statusCode");
                 } else {
-                  statusCode = self.errors[i].statusCode;
+                  reply.statusCode = self.errors[i].statusCode;
                 }
               }
               // Convert the reply error to an object.
@@ -113,29 +115,29 @@ module.exports = function(Riposte) {
                   next(err);
                 } else {
                   reply.errors.push(errorObject);
-                  next(undefined, reply, statusCode);
+                  next(undefined, reply);
                 }
               });
             });
           }
-
-          // Finally, ensure the status code is defined, defaulting to "500 Internal Server Error", then return the reply.
-          tasks.push(function(reply, statusCode, next) {
-            next(undefined, reply, statusCode || 500);
-          });
         }
       }
 
       // Add the reply ID to the reply object
-      tasks.push(function (reply, statusCode, next) {
+      tasks.push(function (reply, next) {
         if(self.id && reply.id === undefined) {
           reply.id = self.id;
         }
-        next(undefined, reply, statusCode);
+        next(undefined, reply);
       });
 
       // Execute the tasks and return the results.
-      async.waterfall(tasks, cb);
+      async.waterfall(tasks, function(err, reply = {}) {
+        if(reply.statusCode === undefined) {
+          reply.statusCode = 500;
+        }
+        cb(err, reply);
+      });
 
       return this;
     }
@@ -255,6 +257,7 @@ module.exports = function(Riposte) {
       this.add(Riposte.SET_REPLY_CLIENT_ERROR, 401, options, cb);
     }
 
+    /*
     send(res, next) {
       let self = this;
 
@@ -264,21 +267,29 @@ module.exports = function(Riposte) {
       }
 
       if(res) {
-        res.reply.toObject(res.replyOptions, function (err, obj, status) {
-          if (err) {
-            next(err);
-          } else {
-            if(self.riposte.logReplies) {
-              self.riposte.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: %s\nBody: %s', obj.id, status, JSON.stringify(obj, undefined, 2)], { level: self.logReplies });
-            }
+        if(res.reply) {
+          res.reply.toObject(res.replyOptions, function (err, obj) {
+            if (err) {
+              next(err);
+            } else {
+              let statusCode = obj.statusCode;
+              delete obj.statusCode;
 
-            res.status(status).send(obj);
-          }
-        });
+              if (self.riposte.logReplies) {
+                self.riposte.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: %s\nBody: %s', obj.id, statusCode, JSON.stringify(obj, undefined, 2)], {level: self.logReplies});
+              }
+
+              res.status(statusCode).send(obj);
+            }
+          });
+        } else {
+          next(new Error("The riposte reply object was not found in the express response object parameter.  Did you forget to call \"riposte.addExpressPreMiddleware(app)\" before \"riposte.addExpressPostMiddleware(app)\"."))
+        }
       } else {
-        next(new Error("The express response object is required, but was never defined."));
+        next(new Error("The express response object parameter is required, but was never defined."));
       }
     }
+    */
 
     /**
      * Set the Reply instance's error list.
@@ -323,7 +334,8 @@ module.exports = function(Riposte) {
             if(err) {
               cb(err);
             } else {
-              self.send(cb);
+              self.riposte.send(self.res, cb);
+              //self.send(cb);
             }
           });
         }
