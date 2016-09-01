@@ -56,7 +56,14 @@ module.exports = function(Riposte) {
       if(self.data === undefined && (self.errors === undefined || self.errors.length == 0)) {
         tasks.push(function(next) {
           self.riposte.handle(Riposte.SET_REPLY_CLIENT_ERROR, 404, undefined, function (err, data) {
-            next(err, { id: self.id, errors: [ data ], statusCode: data.statusCode || 404 });
+            self.riposte.handle(Riposte.ON_REPLY_ERROR_TO_OBJECT, data, undefined, function(err, errorObject) {
+              if(err) {
+                next(err);
+              } else {
+                next(err, {id: self.id, errors: [ errorObject ], statusCode: data.statusCode || 404});
+              }
+            });
+
           });
         });
 

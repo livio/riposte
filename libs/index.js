@@ -153,8 +153,20 @@ class Riposte {
           if (err) {
             next(err);
           } else {
+
             let statusCode = obj.statusCode;
             delete obj.statusCode;
+
+            // Convert errors to objects.
+            /*if(obj.errors) {
+              for (var i = 0; i < obj.errors.length; i++) {
+                let plainObject = {};
+                Object.getOwnPropertyNames(obj.errors[i]).forEach(function (key) {
+                  plainObject[key] = obj.errors[i][key];
+                });
+                obj.errors[i] = plainObject;
+              }
+            }*/
 
             if (self.logReplies) {
               self.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: %s\nBody: %s', obj.id, statusCode, JSON.stringify(obj, undefined, 2)], {level: self.logReplies});
