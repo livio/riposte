@@ -37,7 +37,7 @@ module.exports = function(Riposte) {
       this.id = obj.id || uuid.v4();
       this.res = obj.res || this.res;                   // TODO: Check if this can be set to undefined as default.
       this.riposte = obj.riposte || this.riposte;       // Do not clear out references to the riposte parent class.
-      this.statusCode = obj.statusCode || undefined;
+      this.status = obj.status || undefined;
       return this;
     }
 
@@ -60,7 +60,8 @@ module.exports = function(Riposte) {
               if(err) {
                 next(err);
               } else {
-                next(err, {id: self.id, errors: [ errorObject ], statusCode: data.statusCode || 404});
+                //TODO: change status to statusCode once seneca fixes error #520
+                next(err, {id: self.id, errors: [ errorObject ], status: data.status || 404});
               }
             });
 
@@ -92,7 +93,7 @@ module.exports = function(Riposte) {
         // If there are no errors, then set the status code and do not alter the reply object.
         if( ! self.errors || ! _.isArray(self.errors) || self.errors.length == 0) {
           tasks.push(function(reply, next) {
-            reply.statusCode = 200;
+            reply.status = 200;
             next(undefined, reply);
           });
 
@@ -108,12 +109,14 @@ module.exports = function(Riposte) {
           // Add each error to the reply object and update the status code to the highest value.
           for (let i = 0; i < self.errors.length; i++) {
             tasks.push(function(reply, next) {
-              if (self.errors[i].statusCode && (reply.statusCode === undefined || self.errors[i].statusCode > reply.statusCode)) {
+              //TODO: change status to statusCode once seneca fixes error #520
+
+              if (self.errors[i].status && (reply.status === undefined || self.errors[i].status > reply.status)) {
                 // TODO: For rich errors, use the get method, this may be updated in the future based on RichError module.
                 if(self.errors[i].get) {
-                  reply.statusCode = self.errors[i].get("statusCode");
+                  reply.status = self.errors[i].get("statusCode");
                 } else {
-                  reply.statusCode = self.errors[i].statusCode;
+                  reply.status = self.errors[i].status;
                 }
               }
               // Convert the reply error to an object.
@@ -140,8 +143,9 @@ module.exports = function(Riposte) {
 
       // Execute the tasks and return the results.
       async.waterfall(tasks, function(err, reply = {}) {
-        if(reply.statusCode === undefined) {
-          reply.statusCode = 500;
+        //TODO: change status to statusCode once seneca fixes error #520
+        if(reply.status === undefined) {
+          reply.status = 500;
         }
         cb(err, reply);
       });
