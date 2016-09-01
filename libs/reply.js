@@ -32,11 +32,11 @@ module.exports = function(Riposte) {
      * @return {object} the updated reply instance is returned.
      */
     fromObject(obj = {}) {
-      this.data = obj.data || undefined;
+      this.data = obj.data || this.data;
       this.errors = obj.errors || [];
       this.id = obj.id || uuid.v4();
-      this.res = obj.res || undefined;
-      this.riposte = obj.riposte || undefined;
+      this.res = obj.res || this.res;
+      this.riposte = obj.riposte || this.riposte;
       return this;
     }
 
