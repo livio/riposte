@@ -111,12 +111,14 @@ module.exports = function(Riposte) {
             tasks.push(function(reply, next) {
               //TODO: change status to statusCode once seneca fixes error #520
 
-              if (self.errors[i].status && (reply.status === undefined || self.errors[i].status > reply.status)) {
-                // TODO: For rich errors, use the get method, this may be updated in the future based on RichError module.
-                if(self.errors[i].get) {
-                  reply.status = self.errors[i].get("statusCode");
-                } else {
-                  reply.status = self.errors[i].status;
+              if(self.status === undefined) {
+                if (self.errors[i].status && (reply.status === undefined || self.errors[i].status > reply.status)) {
+                  // TODO: For rich errors, use the get method, this may be updated in the future based on RichError module.
+                  if (self.errors[i].get) {
+                    reply.status = self.errors[i].get("statusCode");
+                  } else {
+                    reply.status = self.errors[i].status;
+                  }
                 }
               }
               // Convert the reply error to an object.
@@ -145,7 +147,7 @@ module.exports = function(Riposte) {
       async.waterfall(tasks, function(err, reply = {}) {
         //TODO: change status to statusCode once seneca fixes error #520
         if(reply.status === undefined) {
-          reply.status = 500;
+          reply.status = self.status || 500;
         }
         cb(err, reply);
       });
