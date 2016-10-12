@@ -310,7 +310,7 @@ module.exports = function(Riposte) {
      * @return {object} the reply instance is returned.
      */
     setErrors(errors) {
-      self.errors = errors;
+      this.errors = errors;
       return this;
     }
 
