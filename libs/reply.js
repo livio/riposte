@@ -37,7 +37,7 @@ module.exports = function(Riposte) {
       this.id = obj.id || uuid.v4();
       this.res = obj.res || this.res;                   // TODO: Check if this can be set to undefined as default.
       this.riposte = obj.riposte || this.riposte;       // Do not clear out references to the riposte parent class.
-      this.status = obj.status || undefined;
+      this.httpStatusCode = obj.httpStatusCode || undefined;
       return this;
     }
 
@@ -61,7 +61,7 @@ module.exports = function(Riposte) {
                 next(err);
               } else {
                 //TODO: change status to statusCode once seneca fixes error #520
-                next(err, {id: self.id, errors: [ errorObject ], status: data.status || 404});
+                next(err, {id: self.id, errors: [ errorObject ], httpStatusCode: data.httpStatusCode || 404});
               }
             });
 
@@ -93,7 +93,7 @@ module.exports = function(Riposte) {
         // If there are no errors, then set the status code and do not alter the reply object.
         if( ! self.errors || ! _.isArray(self.errors) || self.errors.length == 0) {
           tasks.push(function(reply, next) {
-            reply.status = 200;
+            reply.httpStatusCode = 200;
             next(undefined, reply);
           });
 
@@ -111,13 +111,13 @@ module.exports = function(Riposte) {
             tasks.push(function(reply, next) {
               //TODO: change status to statusCode once seneca fixes error #520
 
-              if(self.status === undefined) {
-                if (self.errors[i].status && (reply.status === undefined || self.errors[i].status > reply.status)) {
+              if(self.httpStatusCode === undefined) {
+                if (self.errors[i].httpStatusCode && (reply.httpStatusCode === undefined || self.errors[i].httpStatusCode > reply.httpStatusCode)) {
                   // TODO: For rich errors, use the get method, this may be updated in the future based on remie module.
                   if (self.errors[i].get) {
-                    reply.status = self.errors[i].get("statusCode");
+                    reply.httpStatusCode = self.errors[i].get("httpStatusCode");
                   } else {
-                    reply.status = self.errors[i].status;
+                    reply.httpStatusCode = self.errors[i].httpStatusCode;
                   }
                 }
               }
@@ -146,8 +146,8 @@ module.exports = function(Riposte) {
       // Execute the tasks and return the results.
       async.waterfall(tasks, function(err, reply = {}) {
         //TODO: change status to statusCode once seneca fixes error #520
-        if(reply.status === undefined) {
-          reply.status = self.status || 500;
+        if(reply.httpStatusCode === undefined) {
+          reply.httpStatusCode = self.httpStatusCode || 500;
         }
         cb(err, reply);
       });

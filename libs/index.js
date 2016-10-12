@@ -75,7 +75,7 @@ class Riposte {
           self.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: 500\nResponse Body: %s', data.id, JSON.stringify(data, undefined, 2)], { level: self.logReplies });
         }
 
-        res.status(data.status || 500).send(data);
+        res.status(data.httpStatusCode || 500).send(data);
       });
     });
 
@@ -111,14 +111,14 @@ class Riposte {
         cb(undefined, remie.create(data, options));
       }
     } else if(data instanceof Error) {
-      if(options.status) {
-        data.status = options.status;
+      if(options.httpStatusCode) {
+        data.httpStatusCode = options.httpStatusCode;
       }
       cb(undefined, data);
     } else {
       let error = new Error(data);
-      if(options.status) {
-        error.status = options.status;
+      if(options.httpStatusCode) {
+        error.httpStatusCode = options.httpStatusCode;
       }
       cb(undefined, error);
     }
@@ -138,9 +138,9 @@ class Riposte {
       if(data.code) {
         obj.code = data.code;
       }
-      cb(undefined, obj, options.status || 500);
+      cb(undefined, obj, options.httpStatusCode || 500);
     } else {
-      cb(undefined, data, options.status || 500);
+      cb(undefined, data, options.httpStatusCode || 500);
     }
   }
 
@@ -154,14 +154,14 @@ class Riposte {
             next(err);
           } else {
 
-            let status = obj.status;
-            delete obj.status;
+            let httpStatusCode = obj.httpStatusCode;
+            delete obj.httpStatusCode;
 
             if (self.logReplies) {
-              self.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: %s\nBody: %s', obj.id, status, JSON.stringify(obj, undefined, 2)], {level: self.logReplies});
+              self.handle(Riposte.ON_LOG, ['[%s] Reply with Status Code: %s\nBody: %s', obj.id, httpStatusCode, JSON.stringify(obj, undefined, 2)], {level: self.logReplies});
             }
 
-            res.status(status).send(obj);
+            res.status(httpStatusCode).send(obj);
           }
         });
       } else {
@@ -174,12 +174,12 @@ class Riposte {
     return this;
   }
   
-  setReplyClientError(status, options = {}, cb, riposte) {
+  setReplyClientError(httpStatusCode, options = {}, cb, riposte) {
     let self = riposte || this,
       i18next = self.get("i18next");
 
-    options.status = Number(status);
-    switch(options.status) {
+    options.httpStatusCode = Number(httpStatusCode);
+    switch(options.httpStatusCode) {
       case 400: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.400.badRequest' : 'Bad Request', options, cb);
       case 401: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.400.unauthorized' : 'Unauthorized', options, cb);
       case 402: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.400.paymentRequired' : 'Payment Required', options, cb);
@@ -187,17 +187,17 @@ class Riposte {
       case 404: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.400.notfound' : 'Not Found', options, cb);
       case 409: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.400.conflict' : 'Conflict', options, cb);
       default:
-        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.status]);
+        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.httpStatusCode]);
         return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
 
-  setReplyRedirection(status, options = {}, cb, riposte) {
+  setReplyRedirection(httpStatusCode, options = {}, cb, riposte) {
     let self = riposte || this,
       remie = self.get("remie");
 
-    options.status = Number(status);
-    switch(options.status) {
+    options.httpStatusCode = Number(httpStatusCode);
+    switch(options.httpStatusCode) {
       case 300: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.300.multipleChoices' : 'Multiple Choices', options, cb);
       case 301: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.301.movedPermanently' : 'Moved Permanently', options, cb);
       case 302: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.302.found' : 'Found', options, cb);
@@ -206,34 +206,34 @@ class Riposte {
       case 307: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.307.temporaryRedirect' : 'Temporary Redirect', options, cb);
       case 308: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.308.permanentRedirect' : 'Permanent Redirect', options, cb);
       default:
-        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.status]);
+        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.httpStatusCode]);
         return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
 
-  setReplyServerError(status, options = {}, cb, riposte) {
+  setReplyServerError(httpStatusCode, options = {}, cb, riposte) {
     let self = riposte || this,
       remie = self.get("remie");
 
-    options.status = Number(status);
-    switch(options.status) {
+    options.httpStatusCode = Number(httpStatusCode);
+    switch(options.httpStatusCode) {
       case 500: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
       default:
-        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.status]);
+        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.httpStatusCode]);
         return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
 
-  setReplySuccess(status, options = {}, cb, riposte) {
+  setReplySuccess(httpStatusCode, options = {}, cb, riposte) {
     let self = riposte || this,
       remie = self.get("remie");
 
-    options.status = Number(status);
-    switch(options.status) {
+    options.httpStatusCode = Number(httpStatusCode);
+    switch(options.httpStatusCode) {
       case 200:
         return cb(undefined, true);
       default:
-        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.status]);
+        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.httpStatusCode]);
         return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
