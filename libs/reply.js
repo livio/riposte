@@ -113,7 +113,7 @@ module.exports = function(Riposte) {
 
               if(self.status === undefined) {
                 if (self.errors[i].status && (reply.status === undefined || self.errors[i].status > reply.status)) {
-                  // TODO: For rich errors, use the get method, this may be updated in the future based on RichError module.
+                  // TODO: For rich errors, use the get method, this may be updated in the future based on remie module.
                   if (self.errors[i].get) {
                     reply.status = self.errors[i].get("statusCode");
                   } else {

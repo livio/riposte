@@ -103,12 +103,12 @@ class Riposte {
 
   onReplyError(data, options = {}, cb, riposte) {
     let self = riposte || this;
-    let RichError = self.get("RichError");
-    if(RichError) {
-      if(data instanceof RichError) {
+    let remie = self.get("remie");
+    if(remie) {
+      if(data instanceof remie.RichError) {
         cb(undefined, data);
       } else {
-        cb(undefined, new RichError(data, options));
+        cb(undefined, remie.create(data, options));
       }
     } else if(data instanceof Error) {
       if(options.status) {
@@ -127,10 +127,10 @@ class Riposte {
   onReplyErrorToObject(data, options = {}, cb, riposte) {
     let self = riposte || this;
 
-    let RichError = self.get("RichError");
-    if(RichError && data instanceof RichError) {
+    let remie = self.get("remie");
+    if(remie && data instanceof remie.RichError) {
       // TODO: Update this based on Rich Error library.
-      cb(undefined, data.toResponseObject(riposte.get('richErrorOptions')), data.get("statusCode"));
+      cb(undefined, data.sanitize(riposte.get('remieSanitizeOptions')));
     } else if(data instanceof Error) {
       let obj = {
         message: data.message
@@ -176,57 +176,57 @@ class Riposte {
   
   setReplyClientError(status, options = {}, cb, riposte) {
     let self = riposte || this,
-      RichError = self.get("RichError");
+      i18next = self.get("i18next");
 
     options.status = Number(status);
     switch(options.status) {
-      case 400: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.400.badRequest' : 'Bad Request', options, cb);
-      case 401: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.400.unauthorized' : 'Unauthorized', options, cb);
-      case 402: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.400.paymentRequired' : 'Payment Required', options, cb);
-      case 403: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.400.forbidden' : 'Forbidden', options, cb);
-      case 404: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.400.notFound' : 'Not Found', options, cb);
-      case 409: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.400.conflict' : 'Conflict', options, cb);
+      case 400: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.400.badRequest' : 'Bad Request', options, cb);
+      case 401: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.400.unauthorized' : 'Unauthorized', options, cb);
+      case 402: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.400.paymentRequired' : 'Payment Required', options, cb);
+      case 403: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.400.forbidden' : 'Forbidden', options, cb);
+      case 404: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.400.notfound' : 'Not Found', options, cb);
+      case 409: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.400.conflict' : 'Conflict', options, cb);
       default:
         self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.status]);
-        return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
+        return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
 
   setReplyRedirection(status, options = {}, cb, riposte) {
     let self = riposte || this,
-      RichError = self.get("RichError");
+      remie = self.get("remie");
 
     options.status = Number(status);
     switch(options.status) {
-      case 300: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.300.multipleChoices' : 'Multiple Choices', options, cb);
-      case 301: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.301.movedPermanently' : 'Moved Permanently', options, cb);
-      case 302: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.302.found' : 'Found', options, cb);
-      case 304: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.304.notModified' : 'Not Modified', options, cb);
-      case 305: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.305.useProxy' : 'Use Proxy', options, cb);
-      case 307: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.307.temporaryRedirect' : 'Temporary Redirect', options, cb);
-      case 308: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.308.permanentRedirect' : 'Permanent Redirect', options, cb);
+      case 300: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.300.multipleChoices' : 'Multiple Choices', options, cb);
+      case 301: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.301.movedPermanently' : 'Moved Permanently', options, cb);
+      case 302: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.302.found' : 'Found', options, cb);
+      case 304: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.304.notModified' : 'Not Modified', options, cb);
+      case 305: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.305.useProxy' : 'Use Proxy', options, cb);
+      case 307: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.307.temporaryRedirect' : 'Temporary Redirect', options, cb);
+      case 308: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.308.permanentRedirect' : 'Permanent Redirect', options, cb);
       default:
         self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.status]);
-        return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
+        return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
 
   setReplyServerError(status, options = {}, cb, riposte) {
     let self = riposte || this,
-      RichError = self.get("RichError");
+      remie = self.get("remie");
 
     options.status = Number(status);
     switch(options.status) {
-      case 500: return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
+      case 500: return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
       default:
         self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.status]);
-        return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
+        return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
 
   setReplySuccess(status, options = {}, cb, riposte) {
     let self = riposte || this,
-      RichError = self.get("RichError");
+      remie = self.get("remie");
 
     options.status = Number(status);
     switch(options.status) {
@@ -234,7 +234,7 @@ class Riposte {
         return cb(undefined, true);
       default:
         self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.status]);
-        return self.handle(Riposte.ON_REPLY_ERROR, (RichError) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
+        return self.handle(Riposte.ON_REPLY_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
 
@@ -261,7 +261,6 @@ class Riposte {
           case "log":
           case "logReplies":
           case "logRequests":
-          case "richErrorOptions":
             this[key] = options[key];
             break;
           default:  // Unsupported option(s).
@@ -270,10 +269,17 @@ class Riposte {
       }
     }
 
-    if(options["RichError"] !== undefined) {
-      this["RichError"] = options["RichError"];
+    if(options["remieOptions"] !== undefined) {
+      this["remieOptions"] = options["remieOptions"];
     } else {
-      // TODO: Create a new RichError instance using the richErrorOptions.
+      this["remieOptions"] = { i18next: this["i18next"] };
+    }
+
+    if(options["remie"] !== undefined) {
+      this["remie"] = options["remie"];
+    } else {
+      let Remie = require('remie');
+      this["remie"] = new Remie(this["remieOptions"]);
     }
 
     return this;
@@ -284,9 +290,10 @@ class Riposte {
     this.log = undefined;
     this.logRequests = 'trace';
     this.logReplies = 'trace';
-    this.richError = undefined;
-    this.richErrorOptions = {                    
-      "enableStackTrace": false        // When true, errors returned from the server will include a stack trace.
+    this.remie = undefined;
+    this.remie = {
+      i18next: this.i18next
+      //"enableStackTrace": false        // When true, errors returned from the server will include a stack trace.
     };
 
     // Add event listeners.

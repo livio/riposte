@@ -1,6 +1,7 @@
 let app = (require('express'))(),
   async = require('async'),
   bunyan = require('bunyan'),
+  i18next = require('i18next'),
   PrettyStream = require('bunyan-pretty-stream'),
   request = require("request"),
   riposte = new (require("../../libs/index.js"))();  // Require and create a new Riposte instance.
@@ -17,9 +18,29 @@ let log = bunyan.createLogger({
   ]
 });
 
+// Configure i18next to handle translations of a few common errors.  See http://i18next.com/
+i18next.init({
+  lng: "en-US",
+  nsSeparator: false,
+  resources: {
+    en: {
+      translation: {
+        "server" : {
+          "400" : {
+            "notfound": "The page {{- page}} could not be found",   //There is a '-' before page because the value is unescaped.  See http://i18next.com/translate/interpolation/
+            "forbidden": "The page is forbidden",
+            "unauthorized": "You are not authorized to access this page"
+          }
+        }
+      }
+    }
+  }
+});
+
 // Optionally, here you could configure Riposte's options and handlers.
 riposte.set({
-  "log": log
+  "log": log,
+  "i18next": i18next
 });
 
 // Add the middleware to express to create a new reply instance on every request.

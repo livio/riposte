@@ -16,6 +16,7 @@
     "bunyan": "^1.8.1",
     "bunyan-pretty-stream": "^1.0.1",
     "express": "^4.14.0",
+    "i18next": "^3.4.3",
     "request": "^2.74.0"
   },
   "description": "An example of using express with the Riposte module.",
