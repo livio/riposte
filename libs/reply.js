@@ -7,6 +7,25 @@ let async = require('async'),
   uuid = require('uuid');
 
 
+let addErrorToReply = function(reply, errorType, data, options, cb) {
+  reply.riposte.handle(errorType, data, options, function(err, data) {
+    if(err) {
+      cb(err);
+    } else {
+      reply.addErrors(data, cb);
+    }
+  });
+};
+
+let setErrorInReply = function() {
+
+};
+
+let sendReply = function() {
+
+};
+
+
 /* ********************************************************************** *
  * ****************************** Exported Class
  * ********************************************************************** */
@@ -55,16 +74,18 @@ module.exports = function(Riposte) {
       // Check for data and/or errors, if neither are found then return a 404.
       if(self.data === undefined && (self.errors === undefined || self.errors.length == 0)) {
         tasks.push(function(next) {
-          self.riposte.handle(Riposte.SET_REPLY_CLIENT_ERROR, 404, undefined, function (err, data) {
-            self.riposte.handle(Riposte.ON_REPLY_ERROR_TO_OBJECT, data, undefined, function(err, errorObject) {
-              if(err) {
-                next(err);
-              } else {
-                //TODO: change status to statusCode once seneca fixes error #520
-                next(err, {id: self.id, errors: [ errorObject ], httpStatusCode: data.httpStatusCode || 404});
-              }
-            });
-
+          self.addNotFound(undefined, function(err, data) {
+            if(err) {
+              next(err);
+            } else {
+              self.riposte.handle(Riposte.ON_REPLY_ERROR_TO_OBJECT, data, undefined, function(err, errorObject) {
+                if(err) {
+                  next(err);
+                } else {
+                  next(err, { id: self.id, errors: [ errorObject ], httpStatusCode: data.httpStatusCode || 404 });
+                }
+              });
+            }
           });
         });
 
@@ -185,6 +206,11 @@ module.exports = function(Riposte) {
       }
     }
 
+    addErrorsAndSend() {
+
+    }
+
+
     /**
      * Add one or more errors to the Reply instance.
      * @param {array|object|undefined} errors is the one or more errors to be added.
@@ -230,9 +256,10 @@ module.exports = function(Riposte) {
       return this;
     }
 
-    add(type, data, options, cb) {
+    /*add(type, data, options, cb) {
       let self = this;
 
+      // Handle data and options as optional parameters
       if(typeof data === "function" && cb === undefined) {
         cb = data;
         data = undefined;
@@ -241,6 +268,7 @@ module.exports = function(Riposte) {
         cb = options;
         options = undefined;
       }
+
       self.riposte.handle(type, data, options, function(err, data) {
         if(err) {
           cb(err);
@@ -248,7 +276,7 @@ module.exports = function(Riposte) {
           self.addErrors(data, cb);
         }
       });
-    }
+    }*/
 
     addBadRequest(options, cb) {
       this.add(Riposte.SET_REPLY_CLIENT_ERROR, 400, options, cb);

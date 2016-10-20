@@ -1,22 +1,14 @@
-let app = (require('express'))(),
+let express = require('express'),
   async = require('async'),
-  bunyan = require('bunyan'),
   i18next = require('i18next'),
-  PrettyStream = require('bunyan-pretty-stream'),
   request = require("request"),
-  riposte = new (require("../../libs/index.js"))();  // Require and create a new Riposte instance.
+  Riposte = require('../libs/index.js');
 
-// You can add a bunyan logger instance to Riposte for all logging, including logging all requests and replies.
-let log = bunyan.createLogger({
-  name: "Riposte-Example",
-  serializers: bunyan.stdSerializers,
-  streams: [
-    {
-      level: 'trace',
-      stream: new PrettyStream()
-    }
-  ]
-});
+// Create a new instance of Riposte
+let riposte = new Riposte();  
+
+// Create a new express application instance.
+let app = express();
 
 // Configure i18next to handle translations of a few common errors.  See http://i18next.com/
 i18next.init({
@@ -37,14 +29,15 @@ i18next.init({
   }
 });
 
-// Optionally, here you could configure Riposte's options and handlers.
+// We can add the translation library instance directly 
+// into riposte to automatically handle translations.
 riposte.set({
-  "log": log,
   "i18next": i18next
 });
 
-// Add the middleware to express to create a new reply instance on every request.
-// This should be the first route you add to express.
+// Add the pre middleware to express.  This middleware will 
+// create a new reply instance on every request.  This should 
+// be the first route you add to express.
 riposte.addExpressPreMiddleware(app);
 
 // Add a route to express to simulate a successful API call.
@@ -54,6 +47,7 @@ app.get("/success", function(req, res, next) {
 
 // Add a route to express to simulate an error in an API call.
 app.get("/error", function (req, res, next) {
+  // The method addErrors will add the new error to the reply object and continue onward.  If you want to immediately return the errors use the setErrors method.
   res.reply.addErrors(new Error("An error occurred during the API call."), next);
 });
 
@@ -119,6 +113,9 @@ let server = app.listen(process.env.PORT || 3001, function () {
 
   // Perform all the requests in order, then close the server.
   async.series(tasks, (err, results) => {
+    if(err) {
+      console.log(err);
+    }
     server.close();
   });
 });

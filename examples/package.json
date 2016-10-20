@@ -19,7 +19,7 @@
     "i18next": "^3.4.3",
     "request": "^2.74.0"
   },
-  "description": "An example of using express with the Riposte module.",
+  "description": "Example usage of the Riposte module.",
   "devDependencies": {},
   "engines": {
     "node": ">=6.0.0"
@@ -45,7 +45,7 @@
     }
   ],
   "main": "./libs",
-  "name": "riposte-example-express",
+  "name": "riposte-examples",
   "private": false,
   "repository": {
     "type": "git",
