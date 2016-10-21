@@ -2,10 +2,8 @@
  * ******************** Node Modules
  * ************************************************** */
 
-let async = require('async'),
-  EventEmitter = require('events'),
+let EventEmitter = require('events'),
   path = require('path'),
-  Remie = require('remie'),
   util = require('util');
 
 
@@ -221,83 +219,99 @@ class Riposte {
     }
   }
 
+  /**
+   * Default handler to create a client level error.
+   */
   handleCreateClientError(httpStatusCode, options = {}, cb, riposte) {
     let self = riposte || this,
-      remie = self.get("i18next");
+      remie = self.get("remie");
 
     options.httpStatusCode = Number(httpStatusCode);
+
     switch(options.httpStatusCode) {
-      case 400: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.400.badRequest' : 'Bad Request', options, cb);
+      case 400: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.400.badRequest' : 'Bad request', options, cb);
       case 401: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.400.unauthorized' : 'Unauthorized', options, cb);
-      case 402: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.400.paymentRequired' : 'Payment Required', options, cb);
+      case 402: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.400.paymentRequired' : 'Payment required', options, cb);
       case 403: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.400.forbidden' : 'Forbidden', options, cb);
-      case 404: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.400.notfound' : 'Not Found', options, cb);
+      case 404: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.400.notfound' : 'Not found', options, cb);
       case 409: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.400.conflict' : 'Conflict', options, cb);
       default:
-        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.httpStatusCode]);
-        return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
+        logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateClientError method."));
+        return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
 
+  /**
+   * Default handler to create a 200 OK response.
+   */
   handleCreateOk(httpStatusCode, options = {}, cb, riposte) {
     let self = riposte || this,
       remie = self.get("remie");
 
     options.httpStatusCode = Number(httpStatusCode);
+
     switch(options.httpStatusCode) {
       case 200:
         return cb(undefined, true);
       default:
-        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.httpStatusCode]);
-        return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
+        logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateOk method."));
+        return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
 
+  /**
+   * Default handler to create redirection errors.
+   */
   handleCreateRedirectionError(httpStatusCode, options = {}, cb, riposte) {
     let self = riposte || this,
       remie = self.get("remie");
 
     options.httpStatusCode = Number(httpStatusCode);
+
     switch(options.httpStatusCode) {
-      case 300: return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.300.multipleChoices' : 'Multiple Choices', options, cb);
-      case 301: return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.301.movedPermanently' : 'Moved Permanently', options, cb);
-      case 302: return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.302.found' : 'Found', options, cb);
-      case 304: return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.304.notModified' : 'Not Modified', options, cb);
-      case 305: return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.305.useProxy' : 'Use Proxy', options, cb);
-      case 307: return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.307.temporaryRedirect' : 'Temporary Redirect', options, cb);
-      case 308: return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.308.permanentRedirect' : 'Permanent Redirect', options, cb);
+      case 300: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.300.multipleChoices' : 'Multiple Choices', options, cb);
+      case 301: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.301.movedPermanently' : 'Moved Permanently', options, cb);
+      case 302: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.302.found' : 'Found', options, cb);
+      case 304: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.304.notModified' : 'Not Modified', options, cb);
+      case 305: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.305.useProxy' : 'Use Proxy', options, cb);
+      case 307: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.307.temporaryRedirect' : 'Temporary Redirect', options, cb);
+      case 308: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.308.permanentRedirect' : 'Permanent Redirect', options, cb);
       default:
-        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.httpStatusCode]);
-        return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
+        logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateRedirectionError method."));
+        return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
 
+  /**
+   * Default handler to create server errors.
+   */
   handleCreateServerError(httpStatusCode, options = {}, cb, riposte) {
     let self = riposte || this,
       remie = self.get("remie");
 
     options.httpStatusCode = Number(httpStatusCode);
+
     switch(options.httpStatusCode) {
-      case 500: return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
+      case 500: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
       default:
-        self.handle(Riposte.ON_LOG, ["setReplyClientError():  Unhandled status code of %s", options.httpStatusCode]);
-        return self.handle(Riposte.HANDLE_CREATE_ERROR, (i18next) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
+        logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateServerError method."));
+        return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
 
+  /**
+   * Default handler to sanitize data in a Reply object.
+   */
   handleSanitizeReplyData(data, options = {}, cb, riposte) {
     cb(undefined, data);
   }
 
+  /**
+   * Default handler to translate a locale into a language/region
+   * specific message.
+   */
   handleTranslation(data, options = {}, cb, riposte) {
-    let self = riposte || self;
-
-    let i18next = self.get("i18next");
-    if(i18next) {
-      cb(undefined, i18next.t(data, options));
-    } else {
-      cb(undefined, data);
-    }
+    cb(undefined, data);
   }
 
   logError(err) {
@@ -366,27 +380,13 @@ class Riposte {
           case "logErrorLevel":
           case "logRequestLevel":
           case "logReplyLevel":
+          case "remie":
             this[key] = options[key];
             break;
           default:  // Unsupported option(s).
             break;
         }
       }
-    }
-
-    if()
-
-    if(options["remieOptions"] !== undefined) {
-      this["remieOptions"] = options["remieOptions"];
-    } else {
-      this["remieOptions"] = { i18next: this["i18next"] };
-    }
-
-    //TODO: Option to disable remie.
-    if(options["remie"] !== undefined) {
-      this["remie"] = options["remie"];
-    } else {
-      this["remie"] = new Remie(this["remieOptions"]);
     }
 
     return this;
@@ -405,11 +405,8 @@ class Riposte {
     // Replies should be logged at the same level as requests.
     this.logReplyLevel = this.logRequestLevel;
 
-    // Options used to configure the local Remie instance.
-    this.remieOptions = {};
-
-    // Create a new Remie instance with the default settings.
-    this.remie = new Remie(this.remieOptions);
+    // Disable using Remie by default.
+    this.remie = undefined;
 
     // Add event listener called when a message should be logged.
     this.on(Riposte.ON_LOG, this.onLog);

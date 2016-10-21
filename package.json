@@ -14,7 +14,6 @@
   "dependencies": {
     "async": "^2.0.1",
     "lodash": "^4.14.2",
-    "remie": "^0.1.4",
     "uuid": "^2.0.2"
   },
   "description": "Creates predictable API response objects by placing errors, warnings, and data in a well defined envelope.",
