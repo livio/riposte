@@ -271,7 +271,7 @@ class Riposte {
       case 404: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.400.notfound' : 'Not found', options, cb);
       case 409: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.400.conflict' : 'Conflict', options, cb);
       default:
-        logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateClientError method."));
+        self.logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateClientError method."));
         return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
@@ -289,7 +289,7 @@ class Riposte {
       case 200:
         return cb(undefined, true);
       default:
-        logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateOk method."));
+        self.logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateOk method."));
         return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
@@ -312,7 +312,7 @@ class Riposte {
       case 307: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.307.temporaryRedirect' : 'Temporary Redirect', options, cb);
       case 308: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.308.permanentRedirect' : 'Permanent Redirect', options, cb);
       default:
-        logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateRedirectionError method."));
+        self.logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateRedirectionError method."));
         return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
@@ -329,7 +329,7 @@ class Riposte {
     switch(options.httpStatusCode) {
       case 500: return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
       default:
-        logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateServerError method."));
+        self.logError(new Error("Riposte:  Unhandled status code of "+options.httpStatusCode+" in handleCreateServerError method."));
         return self.handle(Riposte.HANDLE_CREATE_ERROR, (remie) ? 'server.500.generic' : 'An internal server error has occurred.', options, cb);
     }
   }
