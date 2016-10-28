@@ -10,32 +10,7 @@ let riposte = new Riposte();
 // Create a new express application instance.
 let app = express();
 
-// Configure i18next to handle translations of a few common errors.  See http://i18next.com/
-i18next.init({
-  lng: "en-US",
-  nsSeparator: false,
-  resources: {
-    en: {
-      translation: {
-        "server" : {
-          "400" : {
-            "notfound": "The page {{- page}} could not be found",   //There is a '-' before page because the value is unescaped.  See http://i18next.com/translate/interpolation/
-            "forbidden": "The page is forbidden",
-            "unauthorized": "You are not authorized to access this page"
-          }
-        }
-      }
-    }
-  }
-});
-
-// We can add the translation library instance directly 
-// into riposte to automatically handle translations.
-riposte.set({
-  "i18next": i18next
-});
-
-// Add the pre middleware to express.  This middleware will 
+// Add the pre middleware to express.  This middleware will
 // create a new reply instance on every request.  This should 
 // be the first route you add to express.
 riposte.addExpressPreMiddleware(app);
@@ -74,7 +49,7 @@ let server = app.listen(process.env.PORT || 3001, function () {
   // Add a task to make a successful API request.
   tasks.push((cb) => {
     request(address + "/success", function (err, response, body) {
-      if (!err && response.statusCode == 200) {
+      if ( ! err && response.statusCode == 200) {
         console.log("A GET request to \"%s/success\" returned a successful response.\n", address);
       }
       cb(err);

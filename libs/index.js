@@ -4,7 +4,8 @@
 
 let EventEmitter = require('events'),
   path = require('path'),
-  util = require('util');
+  util = require('util'),
+  _ = require('lodash');
 
 
 /* ************************************************** *
@@ -17,11 +18,11 @@ let EventEmitter = require('events'),
  */
 let sendToCallback = function(reply, replyToObjectOptions, cb, riposte) {
   if(reply) {
-    reply.toObject(replyToObjectOptions, function (err, obj) {
+    reply.toObject(function (err, obj) {
       riposte.logError(err);
       riposte.logReply(obj);
-      cb(err, obj);
-    });
+      cb(err, obj);  //TODO: WTF?
+    }, replyToObjectOptions);
   } else {
     console.log("TODO:  Is this a valid use-case or should it throw an error.");
     riposte.logReply(reply);
@@ -38,7 +39,7 @@ let sendToCallback = function(reply, replyToObjectOptions, cb, riposte) {
 let sendToExpress = function(res, replyToObjectOptions, cb, riposte) {
   if(res) {
     if(res.reply) {
-      res.reply.toObject(replyToObjectOptions || res.replyToObjectOptions, function (err, obj) {
+      res.reply.toObject(function (err, obj) {
         if (err) {
           riposte.logError(err);
           cb(err);
@@ -50,7 +51,7 @@ let sendToExpress = function(res, replyToObjectOptions, cb, riposte) {
 
           res.status(httpStatusCode).send(obj);
         }
-      });
+      }, replyToObjectOptions || res.replyToObjectOptions);
     } else {
       cb(new Error("Riposte:  Express response object passed to send() is missing the riposte reply object.  Did you forget to call addExpressPreMiddleware(app) before addExpressPostMiddlware(app)?"));
     }
@@ -76,8 +77,8 @@ let addErrorsToReplyAndSend = function(errors, reply, replyToObjectOptions, cb, 
     reply = riposte.createReply();
   }
 
-  if(err) {
-    reply.addErrors(err, function (err) {
+  if(errors) {
+    reply.addErrors(errors, function (err) {
       if (err) {
         cb(err);
       } else {
@@ -87,6 +88,38 @@ let addErrorsToReplyAndSend = function(errors, reply, replyToObjectOptions, cb, 
   } else {
     riposte.send(reply, replyToObjectOptions, cb);
   }
+};
+
+let setDefaultHandlerOptions = function(type, options, riposte) {
+  if( ! options) {
+    switch (type) {
+      case Riposte.HANDLE_CREATE_CLIENT_ERROR:
+        options = riposte.defaultCreateClientErrorOptions;
+        break;
+      case Riposte.HANDLE_CREATE_ERROR:
+        options = riposte.defaultCreateErrorOptions;
+        break;
+      case Riposte.HANDLE_CREATE_OK:
+        options = riposte.defaultCreateOkOptions;
+        break;
+      case Riposte.HANDLE_CREATE_REDIRECTION_ERROR:
+        options = riposte.defaultCreateRedirectionErrorOptions;
+        break;
+      case Riposte.HANDLE_CREATE_SERVER_ERROR:
+        options = riposte.defaultCreateServerErrorOptions;
+        break;
+      case Riposte.HANDLE_ERROR_TO_OBJECT:
+        options = riposte.defaultErrorToObjectOptions;
+        break;
+      case Riposte.HANDLE_SANITIZE_REPLY_DATA:
+        options = riposte.defaultSanitizeReplyDataOptions;
+        break;
+      default:
+        break;
+    }
+  }
+
+  return options;
 };
 
 
@@ -117,7 +150,7 @@ class Riposte {
     return app;
   }
 
-  addExpressPostMiddleware(app) {
+  addExpressPostMiddleware(app, replyToObjectOptions) {
     let self = this;
 
     // Send the reply stored in the response object
@@ -128,10 +161,11 @@ class Riposte {
     // Add the error that occurred to the reply in the
     // response object, then send the reply.
     app.use(function (err, req, res, next) {
+      self.logTrace(err);
       if( ! err) {
         throw new Error("Riposte:  The Express error handler route added by riposte was just called with an invalid error object.");
       } else {
-        addErrorsToReplyAndSend(err, res, undefined, next, self);
+        addErrorsToReplyAndSend(err, res, replyToObjectOptions, next, self);
       }
     });
 
@@ -149,6 +183,7 @@ class Riposte {
   }
 
   handle(event, data, options, cb) {
+    options = setDefaultHandlerOptions(event, options, this);
     this.emit(event, data, options);
     if(this.handlers[event]) {
       this.handlers[event](data, options, cb, this);
@@ -306,14 +341,6 @@ class Riposte {
     cb(undefined, data);
   }
 
-  /**
-   * Default handler to translate a locale into a language/region
-   * specific message.
-   */
-  handleTranslation(data, options = {}, cb, riposte) {
-    cb(undefined, data);
-  }
-
   logError(err) {
     if(err && this.logErrorLevel) {
       this.handle(Riposte.ON_LOG, [err], { level: this.logErrorLevel });
@@ -327,6 +354,15 @@ class Riposte {
       } else {
         this.handle(Riposte.ON_LOG, ['[undefined] Reply with Status Code: undefined\nBody: undefined'], { level: this.logReplyLevel });
       }
+    }
+  }
+
+  logTrace(ary) {
+    if(this.debug) {
+      if( ! _.isArray(ary)) {
+        ary = [ ary ];
+      }
+      this.handle(Riposte.ON_LOG, ary, { level: "trace" });
     }
   }
 
@@ -363,7 +399,7 @@ class Riposte {
     }
   };
 
-  send(reply, replyToObjectOptions, cb) {
+  send(reply, cb, replyToObjectOptions) {
     if(reply instanceof Reply) {
       sendToCallback(reply, replyToObjectOptions, cb, this);
     } else {
@@ -376,6 +412,13 @@ class Riposte {
     for(let key in options) {
       if(options.hasOwnProperty(key)) {
         switch(key) {
+          case "defaultCreateClientErrorOptions":
+          case "defaultCreateErrorOptions":
+          case "defaultCreateOkOptions":
+          case "defaultCreateRedirectionErrorOptions":
+          case "defaultCreateServerErrorOptions":
+          case "defaultErrorToObjectOptions":
+          case "defaultSanitizeReplyDataOptions":
           case "log":
           case "logErrorLevel":
           case "logRequestLevel":
@@ -389,10 +432,13 @@ class Riposte {
       }
     }
 
+
     return this;
   }
 
   setDefault() {
+    this.debug = (process.env.RIPOSTE_DEBUG === "true" || process.env.RIPOSTE_DEBUG === true) ? true : false;
+
     // Log instance should be undefined to force console logging.
     this.log = undefined;
 
@@ -435,8 +481,13 @@ class Riposte {
     // Add handler to sanitize the data portion of a reply.
     this.use(Riposte.HANDLE_SANITIZE_REPLY_DATA, this.handleSanitizeReplyData);
 
-    // Add handler to translate a locale into a string.
-    this.use(Riposte.HANDLE_TRANSLATION, this.handleTranslation);
+    this.defaultCreateClientErrorOptions = {};
+    this.defaultCreateErrorOptions = {};
+    this.defaultCreateOkOptions = {};
+    this.defaultCreateRedirectionErrorOptions = {};
+    this.defaultCreateServerErrorOptions = {};
+    this.defaultErrorToObjectOptions = {};
+    this.defaultSanitizeReplyDataOptions = {};
 
     return this;
   }
@@ -455,14 +506,27 @@ class Riposte {
   static get ON_LOG() { return "on-log" }
 
   // Handler Types, begin with "handle"
-  static get HANDLE_CREATE_ERROR() { return "handle-create-error" }
-  static get HANDLE_ERROR_TO_OBJECT() { return "handle-error-to-object" }
-  static get HANDLE_SANITIZE_REPLY_DATA() { return "handle-sanitize-reply-data" }
-  static get HANDLE_TRANSLATION() { return "handle-translation" }
   static get HANDLE_CREATE_CLIENT_ERROR() { return "handle-create-client-error" }
+  static get HANDLE_CREATE_ERROR() { return "handle-create-error" }
+  static get HANDLE_CREATE_OK() { return "handle-create-ok"}
   static get HANDLE_CREATE_REDIRECTION_ERROR() { return "handle-create-redirection-error"}
   static get HANDLE_CREATE_SERVER_ERROR() { return "handle-create-server-error" }
-  static get HANDLE_CREATE_OK() { return "handle-create-ok"}
+  static get HANDLE_ERROR_TO_OBJECT() { return "handle-error-to-object" }
+  static get HANDLE_SANITIZE_REPLY_DATA() { return "handle-sanitize-reply-data" }
+
+  // Keys used to identify configurations in an options object.
+  static get OPTIONS_KEY_SANITIZE_REPLY_DATA() { return "sanitizeReplyData" }
+  static get OPTIONS_KEY_ERROR_TO_OBJECT() { return "errorToObject" }
+  static get OPTIONS_KEY_CREATE_ERROR() { return "createError" }
+
+  // HTTP error types handled by the library.
+  static get ERROR_TYPE_BAD_REQUEST() { return 400 }
+  static get ERROR_TYPE_UNAUTHORIZED() { return 401 }
+  static get ERROR_TYPE_PAYMENT_REQUIRED() { return 402 }
+  static get ERROR_TYPE_FORBIDDEN() { return 403 }
+  static get ERROR_TYPE_NOT_FOUND() { return 404 }
+  static get ERROR_TYPE_CONFLICT() { return 409 }
+  static get ERROR_TYPE_INTERNAL_SERVER_ERROR() { return 500 }
   
 }
 
