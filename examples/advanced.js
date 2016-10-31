@@ -109,6 +109,11 @@ app.get("/forbidden", function (req, res, next) {
   res.reply.setForbidden(next);
 });
 
+app.get("/test", function (req, res, next) {
+  // This will add the forbidden error and immediately send it to the client.
+  res.reply.setNotFound(next);
+});
+
 // Add middleware to express to send the reply object and status code to the client at the end of every request.
 // This should be the last route you add to express.
 riposte.addExpressPostMiddleware(app);
@@ -137,6 +142,8 @@ let server = app.listen(process.env.PORT || 3001, function () {
 
   // Add a tasks to make an API request to an endpoint that doesn't exist.
   tasks.push((cb) => { request(address + "/doesNotExist", cb); });
+  
+  tasks.push((cb) => { request(address + "/test", cb); });
 
   // Perform all the requests in order, then close the server.
   async.series(tasks, (err, results) => {

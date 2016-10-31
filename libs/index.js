@@ -16,7 +16,7 @@ let EventEmitter = require('events'),
  * Convert the Reply instance to an object, then send
  * it to the callback method provided.
  */
-let sendToCallback = function(reply, replyToObjectOptions, cb, riposte) {
+let sendToCallback = function(reply, cb, replyToObjectOptions, riposte) {
   if(reply) {
     reply.toObject(function (err, obj) {
       riposte.logError(err);
@@ -36,7 +36,7 @@ let sendToCallback = function(reply, replyToObjectOptions, cb, riposte) {
  * and convert it to an object.  Then move the HTTP status
  * code to the header and send the response to the client.
  */
-let sendToExpress = function(res, replyToObjectOptions, cb, riposte) {
+let sendToExpress = function(res, cb, replyToObjectOptions, riposte) {
   if(res) {
     if(res.reply) {
       res.reply.toObject(function (err, obj) {
@@ -401,9 +401,9 @@ class Riposte {
 
   send(reply, cb, replyToObjectOptions) {
     if(reply instanceof Reply) {
-      sendToCallback(reply, replyToObjectOptions, cb, this);
+      sendToCallback(reply, cb, replyToObjectOptions, this);
     } else {
-      sendToExpress(reply, replyToObjectOptions, cb, this);
+      sendToExpress(reply, cb, replyToObjectOptions, this);
     }
     return this;
   }

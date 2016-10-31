@@ -233,6 +233,14 @@ module.exports = function(Riposte) {
       return this;
     }
 
+    sendBadRequest(res, cb, options) {
+      this.sendErrorType(Riposte.ERROR_TYPE_BAD_REQUEST, res, cb, options);
+    }
+
+    sendConflict(res, cb, options) {
+      this.sendErrorType(Riposte.ERROR_TYPE_CONFLICT, res, cb, options);
+    }
+
     sendErrorType(errorType, res, cb, options) {
       let self = this;
 
@@ -246,13 +254,33 @@ module.exports = function(Riposte) {
         options = {};
       }
 
-      this.setErrorType(errorType, function(err, reply) {
+      self.setErrorType(errorType, function(err, reply) {
         if(err) {
           cb(err);
         } else {
           reply.send(res || reply, cb, options[Riposte.OPTIONS_KEY_ERROR_TO_OBJECT])
         }
       }, options[Riposte.OPTIONS_KEY_CREATE_ERROR]);
+    }
+
+    sendForbidden(res, cb, options) {
+      this.sendErrorType(Riposte.ERROR_TYPE_FORBIDDEN, res, cb, options);
+    }
+
+    sendInternalServerError(res, cb, options) {
+      this.sendErrorType(Riposte.ERROR_TYPE_INTERNAL_SERVER_ERROR, res, cb, options);
+    }
+
+    sendNotFound(res, cb, options) {
+      this.sendErrorType(Riposte.ERROR_TYPE_NOT_FOUND, res, cb, options);
+    }
+
+    sendPaymentRequired(res, cb, options) {
+      this.sendErrorType(Riposte.ERROR_TYPE_PAYMENT_REQUIRED, res, cb, options);
+    }
+
+    sendUnauthorized(res, cb, options) {
+      this.sendErrorType(Riposte.ERROR_TYPE_UNAUTHORIZED, res, cb, options);
     }
 
     setBadRequest(cb, createErrorOptions) {
