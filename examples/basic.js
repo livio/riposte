@@ -1,6 +1,7 @@
 let Riposte = require('../libs/index.js');
 
-// Create a new riposte instance.  The constructor accepts
+// Create a new riposte in
+// stance.  The constructor accepts
 // options used to configure your new instance of Riposte.
 let riposte = new Riposte();
 
@@ -18,7 +19,7 @@ let reply = riposte.createReply();
 reply.setData({ "firstName": "McLovin", "DOB": "06/03/1981"});
 
 // Now we can convert the reply into a JSON data object we can send to the client.
-riposte.send(reply, undefined, function(err, obj) {
+riposte.send(reply, function(err, obj) {
   if(err) {
     // Handle any errors generated while sending the data object.
     console.log(err);
@@ -37,7 +38,7 @@ reply.addErrors(new Error("Something terrible has happened."), function(err, rep
   } else {
 
     // Let's convert the reply again into an object we can send to the client.
-    riposte.send(reply, undefined, function(err, obj) {
+    riposte.send(reply, function(err, obj) {
       if(err) {
         // Handle any errors generated while sending the data object.
         console.log(err);

@@ -65,28 +65,22 @@ let sendToExpress = function(res, cb, replyToObjectOptions, riposte) {
  * Add one or more errors to an instance of Reply.
  * Then send the reply to the client.
  */
-let addErrorsToReplyAndSend = function(errors, reply, replyToObjectOptions, cb, riposte) {
-  // Check if reply is actually an express response object in hiding!
-  if(reply && ! (reply instanceof Reply) && (reply.reply instanceof Reply)) {
-    // If that little fucker is an express response object then we need to extract the reply out of it.
-    reply = reply.reply;
-  }
-
-  // Now make sure reply is defined, otherwise create a new one.
-  if( ! reply) {
-    reply = riposte.createReply();
-  }
-
+let addErrorsToResAndSend = function(errors, res, replyToObjectOptions, cb, riposte) {
   if(errors) {
-    reply.addErrors(errors, function (err) {
+    // Ensure reply is defined, otherwise create a new one.
+    if( ! res.reply) {
+      res.reply = riposte.createReply();
+    }
+
+    res.reply.addErrors(errors, function (err) {
       if (err) {
         cb(err);
       } else {
-        riposte.send(reply, replyToObjectOptions, cb);
+        riposte.send(res, replyToObjectOptions, cb);
       }
     });
   } else {
-    riposte.send(reply, replyToObjectOptions, cb);
+    riposte.send(res, replyToObjectOptions, cb);
   }
 };
 
@@ -165,7 +159,7 @@ class Riposte {
       if( ! err) {
         throw new Error("Riposte:  The Express error handler route added by riposte was just called with an invalid error object.");
       } else {
-        addErrorsToReplyAndSend(err, res, replyToObjectOptions, next, self);
+        addErrorsToResAndSend(err, res, replyToObjectOptions, next, self);
       }
     });
 
